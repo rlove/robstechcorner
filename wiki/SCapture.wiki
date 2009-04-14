@@ -1,0 +1,10 @@
+#summary One-sentence summary of this page.
+
+= Introduction =
+
+[http://code.google.com/p/robstechcorner/source/browse/trunk/Delphi/utils/SCapture.pas SCapture.pas] has routines to capture screen shots from multiple monitors. 
+
+
+= Details =
+
+TODO
