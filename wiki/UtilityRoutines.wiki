@@ -6,4 +6,4 @@ List of all my documented Utility Routines.  They call can be found in [http://c
 
 = Details =
 
-[SCapture.pas]
+[SCapture] - Screen Shot Capture Routines
