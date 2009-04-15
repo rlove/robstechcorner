@@ -59,6 +59,8 @@ function MonitorCount : Integer;
 // This captures Screen with the given TCaptureContext into the destBitmap
 procedure CaptureScreen(aCaptureContext : TCaptureContext; destBitmap : TBitmap;aMonitorNum : Integer = 1);
 
+procedure CaptureRect(aCaptureRect : TRect;destBitMap : TBitmap); inline;
+
 procedure CaptureDeviceContext(SrcDC: HDC;aCaptureRect : TRect;destBitMap : TBitmap); inline;
 
 function GetMonInfoByIdx(MonIdx : Integer) : MONITORINFO;
@@ -167,6 +169,8 @@ end;
 
 procedure CaptureDeviceContext(SrcDC: HDC;aCaptureRect : TRect;destBitMap : TBitmap);
 begin
+// This is just in case you want to capture from a Device Context
+// that is not the screen, or you already have the Device Context Handle
     destBitmap.Width := aCaptureRect.Right - aCaptureRect.Left;
     destBitmap.Height := aCaptureRect.Bottom - aCaptureRect.Top;
     BitBlt(destBitmap.Canvas.Handle,
@@ -179,6 +183,19 @@ begin
            aCaptureRect.Top,
            SRCCOPY) ;
 end;
+
+procedure CaptureRect(aCaptureRect : TRect;destBitMap : TBitmap); inline;
+var
+ dc : HDC;
+begin
+  dc := CreateDC('DISPLAY',nil,nil,nil);
+  try
+     CaptureDeviceContext(dc,aCaptureRect,destBitMap);
+  finally
+    ReleaseDC(0,dc);
+  end;
+end;
+
 
 
 end.
