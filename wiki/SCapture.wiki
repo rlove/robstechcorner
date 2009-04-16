@@ -17,7 +17,7 @@
   *ccSpecificMonitor: Capture an Image of a Specific Monitor specified by the aMonitorNum parameter.  Note: aMonitorNum the first monitor is 1.   You can use the MonitorCount function to determine the valid range of monitors. An EMonitorCaptureException will occur if you select a monitor number outside the valid range. 
   *ccAllMonitors: Capture a single image of all the monitors.   
 
-== Junk Testing ==
+== CaptureScreen ==
 
 {{{
 procedure CaptureScreen(aCaptureContext : TCaptureContext; destBitmap : TBitmap;aMonitorNum : Integer = 1); 
