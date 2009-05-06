@@ -1,4 +1,4 @@
-unit SCaptureDisplay;
+unit SubmitReportForm;
 // MIT License
 //
 // Copyright (c) 2009 - Robert Love
@@ -30,14 +30,14 @@ type
   TCaptureDisplayContext = (cdNone,cdActiveWindow,cdActiveMonitor, cdAllMonitors);
   TCaptureContextSet = set of TCaptureDisplayContext;
 
-  TfrmImgCaptureDisplay = class(TForm)
+  TfrmSubmitReport = class(TForm)
     pnlBottom: TPanel;
     btnCancel: TButton;
     btnOK: TButton;
     Panel1: TPanel;
     Splitter1: TSplitter;
     lblReport: TLabel;
-    Memo1: TMemo;
+    memUserComment: TMemo;
     PageControl1: TPageControl;
     tsImage: TTabSheet;
     tsTechDetails: TTabSheet;
@@ -74,7 +74,6 @@ type
     procedure SetupRadioGroup; virtual;
     procedure SetImage(Index : TCaptureDisplayContext); virtual;
     Function ContextFromText(aText : String) : TCaptureDisplayContext;
-    procedure FillMonitorComboBox;
     procedure WMDropFiles(var Msg: TWMDropFiles); message WM_DropFiles;
   public
     { Public declarations }
@@ -85,11 +84,12 @@ type
   end;
 
 var
-  frmImgCaptureDisplay: TfrmImgCaptureDisplay;
+  frmSubmitReport: TfrmSubmitReport;
 
 
 resourcestring
    icTitle = 'Report Details';
+   icReportQuestion = 'Please Provide Additional Details';
    icImageHint = 'An old Chinese proverb "A Picture''s Meaning Can Express Ten Thousand Words"';
    icGroupBox = 'Screen Shot';
    icButtonOk = 'OK';
@@ -112,7 +112,7 @@ implementation
 
 {$R *.dfm}
 
-procedure TfrmImgCaptureDisplay.CaptureImages;
+procedure TfrmSubmitReport.CaptureImages;
 var
  h : HWND;
  Mon : HMONITOR;
@@ -131,23 +131,13 @@ begin
   GetMonitorInfo(Mon,@MonInfo);
   FActiveDesktopWindow := MonInfo.rcMonitor;
 
-
   h := GetDesktopWindow;
   GetWindowRect(h,FDesktopWindow);
 
-//      hWin := GetForegroundWindow;
-//      dc := CreateDC('DISPLAY',nil,nil,nil);
-//      if aCaptureContext = ccActiveMonitor then
-//      begin
-//        Mon := MonitorFromWindow(hWin,MONITOR_DEFAULTTONEAREST);
-//        MonInfo.cbSize := SizeOf(MonInfo);
-//        GetMonitorInfo(Mon,@MonInfo);
-//      end;
-//  MonitorFromRect(
   FImageCaptured := True;
 end;
 
-function TfrmImgCaptureDisplay.ContextFromText(
+function TfrmSubmitReport.ContextFromText(
   aText: String): TCaptureDisplayContext;
 begin
  for result := low(TCaptureDisplayContext) to High(TCaptureDisplayContext) do
@@ -164,14 +154,8 @@ begin
 
 end;
 
-procedure TfrmImgCaptureDisplay.FillMonitorComboBox;
-begin
-   // Written on My Single Monitor... Hope this works
-   EnumDisplayMonitors(0,nil,MonEnum,0);
 
-end;
-
-procedure TfrmImgCaptureDisplay.FormCreate(Sender: TObject);
+procedure TfrmSubmitReport.FormCreate(Sender: TObject);
 begin
   FMonitorCount := MonitorCount;
   FImage := TBitmap.Create;
@@ -184,34 +168,36 @@ begin
   FAllowAttachments := True;
 end;
 
-procedure TfrmImgCaptureDisplay.FormDestroy(Sender: TObject);
+procedure TfrmSubmitReport.FormDestroy(Sender: TObject);
 begin
   FImage.FreeImage;
   FImage.Free;
 end;
 
-procedure TfrmImgCaptureDisplay.FormShow(Sender: TObject);
+procedure TfrmSubmitReport.FormShow(Sender: TObject);
 begin
   SetupRadioGroup;
   If Not FImageCaptured then
      CaptureImages;
   SetAllowAttachments(FAllowAttachments);
+  PageControl1.ActivePage := tsImage;
+  SetImage(ContextFromText(rgShotSelection.Items[rgShotSelection.ItemIndex]));
 
 end;
 
-procedure TfrmImgCaptureDisplay.rgShotSelectionClick(Sender: TObject);
+procedure TfrmSubmitReport.rgShotSelectionClick(Sender: TObject);
 begin
   SetImage(ContextFromText(rgShotSelection.Items[rgShotSelection.ItemIndex]));
 end;
 
-procedure TfrmImgCaptureDisplay.SetAllowAttachments(const Value: Boolean);
+procedure TfrmSubmitReport.SetAllowAttachments(const Value: Boolean);
 begin
   FAllowAttachments := Value;
-  tsAttach.Visible := Value;
+  tsAttach.TabVisible := Value;
   DragAcceptFiles(Handle,Value)
 end;
 
-procedure TfrmImgCaptureDisplay.SetCaptureOptions(
+procedure TfrmSubmitReport.SetCaptureOptions(
   const Value: TCaptureContextSet);
 begin
   FCaptureOptions := Value;
@@ -219,17 +205,16 @@ begin
      SetupRadioGroup;
 end;
 
-procedure TfrmImgCaptureDisplay.SetDefaultOption(const Value: TCaptureDisplayContext);
+procedure TfrmSubmitReport.SetDefaultOption(const Value: TCaptureDisplayContext);
 begin
   FDefaultOption := Value;
   if Visible then
      SetupRadioGroup;
 end;
 
-procedure TfrmImgCaptureDisplay.SetImage(Index: TCaptureDisplayContext);
+procedure TfrmSubmitReport.SetImage(Index: TCaptureDisplayContext);
 var
  B : TBitMap;
-// x,y,w,h : Integer;
  SourceRect : TRect;
  DestRect : TRect;
 begin
@@ -270,7 +255,7 @@ begin
  end;
 end;
 
-procedure TfrmImgCaptureDisplay.SetupRadioGroup;
+procedure TfrmSubmitReport.SetupRadioGroup;
 var
  CC : TCaptureDisplayContext;
  Cnt : Integer;
@@ -293,7 +278,7 @@ begin
   rgShotSelection.ItemIndex := Idx;;
 end;
 
-procedure TfrmImgCaptureDisplay.WMDropFiles(var Msg: TWMDropFiles);
+procedure TfrmSubmitReport.WMDropFiles(var Msg: TWMDropFiles);
 var
   i    : Integer;
   lCnt : Integer;

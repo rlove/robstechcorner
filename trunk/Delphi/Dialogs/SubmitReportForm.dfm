@@ -1,4 +1,4 @@
-object frmImgCaptureDisplay: TfrmImgCaptureDisplay
+object frmSubmitReport: TfrmSubmitReport
   Left = 0
   Top = 0
   ClientHeight = 501
@@ -9,13 +9,13 @@ object frmImgCaptureDisplay: TfrmImgCaptureDisplay
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  GlassFrame.Enabled = True
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
+  GlassFrame.Enabled = True
   object Splitter1: TSplitter
     Left = 0
     Top = 97
@@ -79,7 +79,7 @@ object frmImgCaptureDisplay: TfrmImgCaptureDisplay
       WordWrap = True
       ExplicitWidth = 33
     end
-    object Memo1: TMemo
+    object memUserComment: TMemo
       Left = 1
       Top = 14
       Width = 526
@@ -91,6 +91,8 @@ object frmImgCaptureDisplay: TfrmImgCaptureDisplay
       ParentShowHint = False
       ShowHint = True
       TabOrder = 0
+      ExplicitLeft = 0
+      ExplicitTop = 12
     end
   end
   object PageControl1: TPageControl
