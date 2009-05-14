@@ -82,6 +82,7 @@ begin
      dmConvert.BDEdb.AliasName := cbxAlias.Text;
      dmConvert.BDEdb.Connected := true;
      dmConvert.PopulateTableNames(clbTables.Items);
+     dmConvert.BDEdb.Connected := false;
   end
   else
   begin

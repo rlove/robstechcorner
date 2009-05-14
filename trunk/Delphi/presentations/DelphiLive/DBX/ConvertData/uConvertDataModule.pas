@@ -15,7 +15,7 @@ uses
   DbxSybaseASA,
   DBXDb2,
   DBXMsSQL,
-  DBXMySql, Provider, DBClient;
+  DBXMySql, Provider, DBClient, FMTBcd;
 
 type
   TConvertProgress = procedure ( ProgressStatement : String) of Object;
@@ -23,6 +23,9 @@ type
     BDEdb: TDatabase;
     dbxConn: TSQLConnection;
     bdeTable: TTable;
+    qryImport: TSQLQuery;
+    CDS: TClientDataSet;
+    dsProvider: TDataSetProvider;
   private
     FOnConvertProgress: TConvertProgress;
     procedure SetOnConvertProgress(const Value: TConvertProgress);
@@ -55,6 +58,9 @@ uses dbConnAdmin,
      dbxCommon,
      dbxUtils; {dbxUtils: Found in the DBX Datapump Example and on CodeCentral ID: 26288; }
 
+type
+ TDBXMetaDataProviderHack = class(TDBXMetaDataProvider);
+
 const
 
 //Mapping Best Guess in 10 minutes of work, so I suspsect there
@@ -64,7 +70,7 @@ const
    ( {ftUnknown} TDBXDataTypes.UnknownType, {ftString} TDBXDataTypes.AnsiStringType, {ftSmallint} TDBXDataTypes.Int16Type, {ftInteger} TDBXDataTypes.Int32Type, {ftWord} TDBXDataTypes.UInt16Type, // 0..4
     {ftBoolean} TDBXDataTypes.BooleanType, {ftFloat} TDBXDataTypes.DoubleType, {ftCurrency} TDBXDataTypes.CurrencyType, {ftBCD} TDBXDataTypes.BcdType, {ftDate}TDBXDataTypes.DateType , {ftTime} TDBXDataTypes.TimeType, {ftDateTime} TDBXDataTypes.DateTimeType, // 5..11
     {ftBytes}TDBXDataTypes.BytesType , {ftVarBytes} TDBXDataTypes.VarBytesType, {ftAutoInc} TDBXDataTypes.AutoIncSubType, {ftBlob} TDBXDataTypes.BlobType, {ftMemo} TDBXDataTypes.MemoSubType, {ftGraphic} TDBXDataTypes.BlobType, {ftFmtMemo} TDBXDataTypes.MemoSubType, // 12..18
-    {ftParadoxOle}TDBXDataTypes.UnknownType , {ftDBaseOle}TDBXDataTypes.UnknownType, {ftTypedBinary}TDBXDataTypes.UnknownType, {ftCursor}TDBXDataTypes.UnknownType, {ftFixedChar}TDBXDataTypes.CharArrayType, {ftWideString} TDBXDataTypes.WideStringType,  // 19..24
+    {ftParadoxOle}TDBXDataTypes.UnknownType , {ftDBaseOle}TDBXDataTypes.UnknownType, {ftTypedBinary}TDBXDataTypes.BlobType, {ftCursor}TDBXDataTypes.UnknownType, {ftFixedChar}TDBXDataTypes.CharArrayType, {ftWideString} TDBXDataTypes.WideStringType,  // 19..24
     {ftLargeint}TDBXDataTypes.Int64Type, {ftADT}TDBXDataTypes.AdtType , {ftArray}TDBXDataTypes.ArrayType , {ftReference}TDBXDataTypes.UnknownType, {ftDataSet}TDBXDataTypes.UnknownType, {ftOraBlob}TDBXDataTypes.BlobType, {ftOraClob} TDBXDataTypes.BlobType, // 25..31
     {ftVariant} TDBXDataTypes.UnknownType, {ftInterface}TDBXDataTypes.UnknownType, {ftIDispatch}TDBXDataTypes.UnknownType, {ftGuid}TDBXDataTypes.CharArrayType, {ftTimeStamp} TDBXDataTypes.DateTimeType, {ftFMTBcd} TDBXDataTypes.BcdType, // 32..37
     {ftFixedWideChar} TDBXDataTypes.WideStringType, {ftWideMemo} TDBXDataTypes.UnknownType, {ftOraTimeStamp} TDBXDataTypes.OracleTimeStampSubType, {ftOraInterval}TDBXDataTypes.OracleIntervalSubType, // 38..41
@@ -87,7 +93,18 @@ begin
  UpdateProgress('Converting Data for ' + TableName);
  bdeTable.Close;
  bdeTable.TableName := TableName;
+ bdeTable.TableType := ttParadox;
+ try
  bdeTable.Open; // if we used a query here it would just be select * from tablename
+ except
+   try
+     bdeTable.TableType := ttDBase;
+     bdeTable.Open
+   except
+     bdeTable.TableType := ttFoxPro;
+     bdeTable.Open
+   end;
+ end;
  ConvertTableData(TableName,bdeTable,dbxConn);
  bdeTable.Close;
  UpdateProgress('Converted Data for ' + TableName);
@@ -98,6 +115,18 @@ begin
  UpdateProgress('Converting MetaData for ' + TableName);
  bdeTable.Close;
  bdeTable.TableName := TableName;
+ bdeTable.TableType := ttParadox;
+ try
+ bdeTable.Open; // if we used a query here it would just be select * from tablename
+ except
+   try
+     bdeTable.TableType := ttDBase;
+     bdeTable.Open
+   except
+     bdeTable.TableType := ttFoxPro;
+     bdeTable.Open
+   end;
+ end;
  bdeTable.Open; // really not so great for SQL based really should be a select * from table where 0 = 1
  ConvertTableMetaData(TableName,bdeTable,dbxConn);
  bdeTable.Close;
@@ -107,9 +136,6 @@ end;
 procedure TdmConvert.ConvertTableData(TableName: String; DataSet: TDataset;
   DestConn: TSQLConnection);
 var
- qry : TSQLQuery;
- Prov : TDataSetProvider;
- CDS : TClientDataSet;
  Rows : Integer;
 begin
 // Yes I could have generated a insert statement here and it
@@ -117,17 +143,14 @@ begin
 // But, I have never seen a paradox,dbtable that large.
 // so this will work for many people... If it don't work for
 // you then you can generate the insert statement :-)
-  qry := TSQLQuery.Create(nil);
-  prov := TDataSetProvider.Create(nil);
-  CDS := TClientDataSet.Create(nil);
-  try
-    Prov.Name := 'ImportProvider';
-    qry.SQLConnection  := DestConn;
-    qry.SQL.Add('select * from ');
-    qry.SQL.Add(tablename);
-    qry.SQL.Add(' where 0  = 1');
-    Prov.DataSet := qry;
-    CDS.ProviderName := Prov.Name;
+    qryImport.Close;
+    qryImport.SQLConnection  := DestConn;
+    qryImport.SQL.Clear;
+    qryImport.SQL.Add('select * from ');
+    qryImport.SQL.Add(tablename);
+    qryImport.SQL.Add(' where 0  = 1');
+    qryImport.Open;
+    CDS.Open;
     DataSet.First;
     Rows := 0;
     while not DataSet.Eof do
@@ -138,25 +161,21 @@ begin
       if Rows > 100 then
       begin
         cds.ApplyUpdates(0);
-        qry.Close;
+        qryImport.Close;
         CDS.Close;
-        qry.Open;
+        qryImport.Open;
         CDS.Open;
       end;
       DataSet.Next;
     end;
     cds.ApplyUpdates(0);
-    qry.Close;
+    qryImport.Close;
     CDS.Close;
-   finally
-    FreeAndNil(cds);
-    FreeAndNil(Prov);
-    FreeAndNil(qry);
-  end;
 end;
 
 procedure TdmConvert.ConvertTableMetaData(TableName: String; DataSet: TDataset;
   DestConn: TSQLConnection);
+
 var
  MDP : TDBXMetaDataProvider;
  Tbl : TDBXMetaDataTable;
@@ -173,12 +192,23 @@ begin
    Col.Nullable := Not (faRequired in DataSet.FieldDefs.Items[I].Attributes);
    Col.DataType := FieldTypeMap[DataSet.FieldDefs.Items[I].DataType];
    Col.AutoIncrement := (DataSet.FieldDefs.Items[I].DataType = ftAutoInc);
-   Col.Precision := DataSet.FieldDefs.Items[I].Precision;
-   Col.Scale := DataSet.FieldDefs.Items[I].Size;
    Col.FixedLength := (DataSet.FieldDefs.Items[I].DataType in ftFixedSizeTypes);
+   if col.FixedLength then
+   begin
+        Col.Precision := DataSet.FieldDefs.Items[I].Precision;
+   end
+   else
+   begin
+       Col.Precision := DataSet.FieldDefs.Items[I].Size;
+   end;
+
    Col.Long := (DataSet.FieldDefs.Items[I].DataType in ftLongTypes);
-   Tbl.AddColumn(Col);
+   if Col.DataType > 0 then
+      Tbl.AddColumn(Col)
+   else
+      UpdateProgress('Skipping "' + Col.ColumnName + '" unable determine valid dbx type');
  end;
+ Tbl.TableName := uppercase(TableName);
  MDP.CreateTable(Tbl);
  finally
    TBL.Free;
@@ -217,14 +247,17 @@ begin
   for I := 0 to Source.FieldCount - 1 do
   begin
     SourceField := Source.Fields[I];
-    DestField := Dest.FieldByName(SourceField.FieldName);
-    if SourceField.DataType in  ftNonTextTypes then
+    DestField := Dest.FindField(SourceField.FieldName);
+    if Assigned(DestField) then
     begin
-      // TODO: Finish
-    end
-    else
-    begin
-      DestField.AsString := SourceField.AsString;
+      if SourceField.DataType in  ftNonTextTypes then
+      begin
+         DestField.AsBytes := SourceField.AsBytes;
+      end
+      else
+      begin
+        DestField.AsString := SourceField.AsString;
+      end;
     end;
   end;
 
