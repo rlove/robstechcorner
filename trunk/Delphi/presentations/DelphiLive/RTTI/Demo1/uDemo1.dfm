@@ -31,27 +31,19 @@ object Form3: TForm3
     Top = 39
     Width = 592
     Height = 501
-    ActivePage = tsInteract
+    ActivePage = tsQuery
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 1
     object tsQuery: TTabSheet
       Caption = 'Query'
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 281
-      ExplicitHeight = 165
       object pcQuery: TPageControl
         Left = 0
         Top = 0
         Width = 584
         Height = 473
-        ActivePage = tsOther
+        ActivePage = tsPropListData
         Align = alClient
         TabOrder = 0
-        ExplicitLeft = -328
-        ExplicitTop = -315
-        ExplicitWidth = 609
-        ExplicitHeight = 480
         object tsPropListData: TTabSheet
           Caption = 'PProp List Data (TypInfo.pas)'
           object ListView1: TListView
@@ -187,7 +179,7 @@ object Form3: TForm3
             Width = 329
             Height = 21
             Style = csDropDownList
-            ItemHeight = 0
+            ItemHeight = 13
             TabOrder = 1
             OnChange = cbxPropListSetValuesChange
           end
