@@ -431,9 +431,9 @@ begin
 
 
   // Since I compile with a different active often!
-  pcMain.ActivePage := tsQuery;
-  pcQuery.ActivePage := tsPropListData;
-  pcInteract.ActivePage := tsSetValues;
+  //  pcMain.ActivePage := tsQuery;
+  //  pcQuery.ActivePage := tsPropListData;
+  //  pcInteract.ActivePage := tsSetValues;
 end;
 
 procedure TForm3.HelloWorldMessage;
