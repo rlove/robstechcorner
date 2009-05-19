@@ -45,14 +45,16 @@ type
     rgShotSelection: TRadioGroup;
     imgDisplay: TImage;
     memTechDetails: TMemo;
-    lblTechDetails: TLabel;
     lvAttachedFiles: TListView;
-    Button1: TButton;
-    Button2: TButton;
+    btnAddAttachment: TButton;
+    btnRemoveAttachment: TButton;
+    dlgOpen: TOpenDialog;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure rgShotSelectionClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure btnAddAttachmentClick(Sender: TObject);
+    procedure btnRemoveAttachmentClick(Sender: TObject);
   private
     FMonitorCount : Integer;
     FCaptureOptions: TCaptureContextSet;
@@ -66,6 +68,8 @@ type
     FDefaultMonIdx : Integer;
     FActiveMonIndx : Integer;
     FAllowAttachments: Boolean;
+    procedure AddAttachment(aFileName : String); overload;
+    procedure AddAttachment(aFileName : String; Description : String); overload;
     procedure SetCaptureOptions(const Value: TCaptureContextSet);
     procedure SetDefaultOption(const Value: TCaptureDisplayContext);
     procedure SetAllowAttachments(const Value: Boolean);
@@ -112,6 +116,40 @@ implementation
 
 {$R *.dfm}
 
+procedure TfrmSubmitReport.AddAttachment(aFileName: String);
+var
+ lDesc : String;
+begin
+  if InputQuery('Please add description for File.',ExtractFileName(aFileName),lDesc) then
+    AddAttachment(aFileName,lDesc);
+end;
+
+procedure TfrmSubmitReport.AddAttachment(aFileName, Description: String);
+var
+ li : TListItem;
+begin
+  li := lvAttachedFiles.Items.add;
+  li.Caption := aFileName;
+  li.SubItems.Add(Description);
+end;
+
+procedure TfrmSubmitReport.btnAddAttachmentClick(Sender: TObject);
+var
+  fn : String;
+begin
+  if dlgOpen.Execute then
+  begin
+    for fn in dlgOpen.Files do
+      AddAttachment(fn);
+  end;
+
+end;
+
+procedure TfrmSubmitReport.btnRemoveAttachmentClick(Sender: TObject);
+begin
+   lvAttachedFiles.DeleteSelected;
+end;
+
 procedure TfrmSubmitReport.CaptureImages;
 var
  h : HWND;
@@ -149,10 +187,6 @@ begin
 end;
 
 
-function MonEnum(hm: HMONITOR; dc: HDC; r: PRect; l: LPARAM): Boolean; stdcall;
-begin
-
-end;
 
 
 procedure TfrmSubmitReport.FormCreate(Sender: TObject);
@@ -295,13 +329,9 @@ begin
     DragQueryFile( msg.Drop, i,
                    pchar(lFileName), Length(lFileName) );
 
-    // do your thing with the acFileName
-    MessageBox( Handle, pchar(lFileName), '', MB_OK );
+    AddAttachment(lFileName);
   end;
-
-  // let Windows know that you're done
   DragFinish( msg.Drop );
-
 end;
 
 end.

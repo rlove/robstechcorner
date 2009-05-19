@@ -34,7 +34,8 @@ object frmSubmitReport: TfrmSubmitReport
     Align = alBottom
     AutoSize = True
     BevelOuter = bvNone
-    TabOrder = 0
+    TabOrder = 2
+    ExplicitTop = 456
     object btnCancel: TButton
       AlignWithMargins = True
       Left = 441
@@ -46,7 +47,8 @@ object frmSubmitReport: TfrmSubmitReport
       Align = alRight
       Cancel = True
       Caption = 'Cancel'
-      TabOrder = 0
+      ModalResult = 2
+      TabOrder = 1
     end
     object btnOK: TButton
       AlignWithMargins = True
@@ -58,8 +60,8 @@ object frmSubmitReport: TfrmSubmitReport
       Margins.Bottom = 7
       Align = alRight
       Caption = 'OK'
-      Default = True
-      TabOrder = 1
+      ModalResult = 1
+      TabOrder = 0
     end
   end
   object Panel1: TPanel
@@ -68,31 +70,33 @@ object frmSubmitReport: TfrmSubmitReport
     Width = 528
     Height = 97
     Align = alTop
-    TabOrder = 1
+    TabOrder = 0
+    DesignSize = (
+      528
+      97)
     object lblReport: TLabel
-      Left = 1
+      Left = 2
       Top = 1
-      Width = 526
+      Width = 522
       Height = 13
-      Align = alTop
+      Anchors = [akLeft, akTop, akRight]
+      AutoSize = False
       Caption = 'Report'
       WordWrap = True
-      ExplicitWidth = 33
     end
     object memUserComment: TMemo
-      Left = 1
-      Top = 14
+      Left = 2
+      Top = 18
       Width = 526
-      Height = 82
+      Height = 76
       Hint = 
         '"As the Chinese say, 1001 words is worth more than a picture."  ' +
         '- John McCarthy'
-      Align = alClient
+      Anchors = [akLeft, akTop, akRight, akBottom]
       ParentShowHint = False
+      ScrollBars = ssVertical
       ShowHint = True
       TabOrder = 0
-      ExplicitLeft = 0
-      ExplicitTop = 12
     end
   end
   object PageControl1: TPageControl
@@ -102,7 +106,7 @@ object frmSubmitReport: TfrmSubmitReport
     Height = 354
     ActivePage = tsImage
     Align = alClient
-    TabOrder = 2
+    TabOrder = 1
     object tsImage: TTabSheet
       Caption = 'Image'
       object imgDisplay: TImage
@@ -143,23 +147,16 @@ object frmSubmitReport: TfrmSubmitReport
     object tsTechDetails: TTabSheet
       Caption = 'Technical Details'
       ImageIndex = 1
-      object lblTechDetails: TLabel
+      object memTechDetails: TMemo
         Left = 0
         Top = 0
         Width = 520
-        Height = 13
-        Align = alTop
-        Caption = 'TD'
-        ExplicitWidth = 13
-      end
-      object memTechDetails: TMemo
-        Left = 0
-        Top = 13
-        Width = 520
-        Height = 313
+        Height = 326
         Align = alClient
         ReadOnly = True
         TabOrder = 0
+        ExplicitTop = 13
+        ExplicitHeight = 313
       end
     end
     object tsAttach: TTabSheet
@@ -177,14 +174,18 @@ object frmSubmitReport: TfrmSubmitReport
         Columns = <
           item
             Caption = 'Filename'
+            Width = 200
           end
           item
             Caption = 'Description'
+            Width = 250
           end>
+        MultiSelect = True
+        SortType = stText
         TabOrder = 0
         ViewStyle = vsReport
       end
-      object Button1: TButton
+      object btnAddAttachment: TButton
         Left = 0
         Top = 289
         Width = 121
@@ -192,8 +193,9 @@ object frmSubmitReport: TfrmSubmitReport
         Anchors = [akLeft, akBottom]
         Caption = 'Add Attachment'
         TabOrder = 1
+        OnClick = btnAddAttachmentClick
       end
-      object Button2: TButton
+      object btnRemoveAttachment: TButton
         Left = 128
         Top = 289
         Width = 161
@@ -201,7 +203,14 @@ object frmSubmitReport: TfrmSubmitReport
         Anchors = [akLeft, akBottom]
         Caption = 'Remove Selected Attachment'
         TabOrder = 2
+        OnClick = btnRemoveAttachmentClick
       end
     end
+  end
+  object dlgOpen: TOpenDialog
+    Options = [ofHideReadOnly, ofAllowMultiSelect, ofPathMustExist, ofFileMustExist, ofEnableSizing]
+    Title = 'Select File(s) to Attach'
+    Left = 24
+    Top = 448
   end
 end
