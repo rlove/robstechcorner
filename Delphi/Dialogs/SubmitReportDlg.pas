@@ -24,6 +24,7 @@ interface
 uses SysUtils,Classes, Controls, SubmitReportForm;
 
 type
+  ESubmitDialogError = class(Exception);
   TSubmitReportDlg = class(TComponent)
   private
     FForm : TfrmSubmitReport;
@@ -38,6 +39,9 @@ type
     procedure SetReportQuestion(const Value: String);
     procedure SetTitle(const Value: String);
     procedure CreateFormIfNeeded;
+    function GetAttachment(Index: Integer): String;
+    function GetAttachmentCount: Integer;
+    function GetAttachmentDescription(Index: Integer): String;
   public
     constructor Create(aOwner : TComponent); override;
     destructor Destroy; override;
@@ -49,11 +53,16 @@ type
     property Title : String read FTitle write SetTitle;
     property ReportQuestion : String read FReportQuestion write SetReportQuestion;
     property AllowAttachments : boolean read FAllowAttachments write SetAllowAttachments;
+    property AttachmentCount : Integer read GetAttachmentCount;
+    property Attachment[Index : Integer] : String read GetAttachment;
+    property AttachmentDescription[Index : Integer] : String read GetAttachmentDescription;
+
 
   published
   end;
 
 implementation
+uses ComCtrls,RtlConsts;
 
 { TSubmitReportDlg }
 
@@ -96,8 +105,40 @@ begin
   result := (FForm.ShowModal = mrOk);
   if result then
   begin
-    FReportComment.Assign(FForm.memUserComment);
+    FReportComment.Assign(FForm.memUserComment.Lines);
   end;
+end;
+
+function TSubmitReportDlg.GetAttachment(Index: Integer): String;
+begin
+  if Assigned(FForm) then
+    result := FForm.lvAttachedFiles.Items.Item[Index].Caption
+  else
+    raise ESubmitDialogError.Create('Unable to Get Attachments, must call execute first.');
+end;
+
+function TSubmitReportDlg.GetAttachmentCount: Integer;
+begin
+ if Assigned(FForm) then
+   result := FForm.lvAttachedFiles.Items.Count
+ else
+   result := 0;
+end;
+
+function TSubmitReportDlg.GetAttachmentDescription(Index: Integer): String;
+var
+ li : TListItem;
+begin
+  if Assigned(FForm) then
+  begin
+    li := FForm.lvAttachedFiles.Items.Item[Index];
+    if li.SubItems.Count > 0 then
+       result := li.SubItems.Strings[0]
+    else
+       result := '';
+  end
+  else
+    raise ESubmitDialogError.Create('Unable to Get Attachments, must call execute first.');
 end;
 
 procedure TSubmitReportDlg.SetAllowAttachments(const Value: boolean);
