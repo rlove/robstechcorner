@@ -71,13 +71,14 @@ type
     procedure Put(Index: Integer; const Item: T);
     procedure SetCapacity(NewCapacity: Integer);
     procedure SetCount(NewCount: Integer);
+    procedure BeforeDelete(Item : T); virtual;
   public
     constructor Create; overload;
     constructor Create(aComparer : IComparer<T>); overload;
 
     destructor Destroy; override;
     procedure Clear;
-    procedure Delete(Index: Integer);
+    procedure Delete(Index: Integer); virtual;
     procedure Exchange(Index1, Index2: Integer);
     function First: IInterface;
     function IndexOf(const Item: T): Integer;
@@ -145,6 +146,11 @@ begin
   inherited Destroy;
 end;
 
+procedure TInterfaceList<T>.BeforeDelete(Item: T);
+begin
+
+end;
+
 procedure TInterfaceList<T>.Clear;
 var
   I: Integer;
@@ -156,6 +162,7 @@ begin
     try
       for I := 0 to Count - 1 do
       begin
+         BeforeDelete(lList.Items[I]);
          lList.Items[I] := default(t); //i.e. Nil
       end;
       lList.Clear;
@@ -172,6 +179,7 @@ var
 begin
   lList := FList.LockList;
   try
+    BeforeDelete(lList.Items[Index]);
     Self.Put(Index, Default(T));
     lList.Delete(Index);
   finally
@@ -293,6 +301,7 @@ function TInterfaceList<T>.Remove(const Item: T): Integer;
 var
  lList : TList<T>;
 begin
+// By Design does not call BeforeDelete()
   lList := FList.LockList;
   try
     Result := lList.IndexOf(Item);

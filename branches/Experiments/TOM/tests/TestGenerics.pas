@@ -170,7 +170,6 @@ end;
 
 procedure TestIInterfaceList.TestDelete;
 var
-  Index: Integer;
   I : IInterface;
   O : TInterfacedObject;
 begin
@@ -235,7 +234,6 @@ end;
 
 procedure TestIInterfaceList.TestAdd;
 var
-  Index: Integer;
   I : IInterface;
   O : TInterfacedObject;
 begin
@@ -248,7 +246,6 @@ end;
 
 procedure TestIInterfaceList.TestInsert;
 var
-  ReturnValue: Integer;
   I1 : IInterface;
 begin
   FIInterfaceList.Add(TInterfacedObject.Create);

@@ -51,18 +51,7 @@ type
     procedure DummyTest;
 
   end;
-  // Test methods for class TOMEntity
 
-  TestTOMEntity = class(TTestCase)
-  strict private
-    FOMEntity: TOMEntity;
-  public
-    procedure SetUp; override;
-    procedure TearDown; override;
-  published
-    procedure DummyTest;
-
-  end;
 
 implementation
 
@@ -114,27 +103,11 @@ begin
   FOMProperty := nil;
 end;
 
-procedure TestTOMEntity.DummyTest;
-begin
-
-end;
-
-procedure TestTOMEntity.SetUp;
-begin
-  FOMEntity := TOMEntity.Create;
-end;
-
-procedure TestTOMEntity.TearDown;
-begin
-  FOMEntity.Free;
-  FOMEntity := nil;
-end;
 
 initialization
   // Register any test cases with the test runner
   RegisterTest(TestTOMSource.Suite);
   RegisterTest(TestTOMAttribute.Suite);
   RegisterTest(TestTOMProperty.Suite);
-  RegisterTest(TestTOMEntity.Suite);
 end.
 

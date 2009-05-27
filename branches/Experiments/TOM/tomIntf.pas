@@ -6,15 +6,21 @@ uses
   SysUtils,
   Classes,
   Generics.Collections,
-  Generics.Defaults;
+  Generics.Defaults,
+  Generics.InterfaceList;
 
 
 type
   ITOMEntity = interface; //forward
   ITOMAttributes = interface; // forward
 
-  TOMPropertyState = (psUnSet,psLoading,psLoaded);
 
+  ITOMSource = interface
+    ['{4EA06104-FEC6-4089-915E-3B0742F89A2B}']
+  end;
+
+
+  TOMPropertyState = (psUnSet,psLoading,psLoaded);
 
   ITOMPropertyBase = interface
     ['{D756262A-74C8-4417-96C1-270B2FE71C3F}']
@@ -49,16 +55,30 @@ type
     property OriginalValue :  T read GetOriginalValue write SetOriginalValue;
     property Comparer: IComparer<T> read GetComparer write SetComparer;
   end;
-
+  /// <summary>
+  ///   TEntityState
+  ///      esPrep - UnInitialized - Default State, No Properties can be
+  ///               set during this state.
+  ///      esLoading - Occurs when Loading data from source
+  ///                  Any Property can be set during this time but no changes
+  ///                  are recorded.
+  ///      esInsert - Occurs when new instance of object has been created by
+  ///                 not persisted, allow editing of data
+  ///      esLoaded - Occurs after loading, allows editing of loaded data.
+  ///      esStoring - Occurs during the streaming of data to source.
+  ///                  when finished state will be esLoaded
+  /// </summary>
   TEntityState = (esPrep, esLoading, esInsert, esLoaded, esStoring);
   ITOMEntity = interface
     ['{457CB7D7-1E8F-4C35-81CE-B99EC0E310D7}']
-     procedure Insert;
-     procedure Save;
-     procedure Load;
+//   Thinking that we need to publish a State instead and make loading,saving and inserting
+//    a functionality of ISource
+//     procedure Insert;
+//     procedure Save;
+//     procedure Load;
      // I want to Reserve the load overload for TValue and I think it may be ambugious
      // So hence LoadEx instead of overload
-     procedure LoadEx(PropNames : Array of String;PropValues : Array of Variant);
+//     procedure LoadEx(PropNames : Array of String;PropValues : Array of Variant);
 //   Since every property get an entity it would be nice to dynamically get the values.
 //   But you really can't refer to a generic Class this way.
 //     function GetProperty(Name : String) : ITOMProperty<T>; overload;
@@ -70,6 +90,9 @@ type
      function EntityPropertyCount : Integer;
      function GetProperty(Name : String) : ITOMPropertyBase; overload;
      function GetProperty(Index : Integer) : ITOMPropertyBase; overload;
+     function GetEntityState : TEntityState;
+     procedure SetEntityState(const Value : TEntityState);
+     property State : TEntityState read GetEntityState write SetEntityState;
 
 // A thought for future version, need to to think about possibly supporting
 // nested transactions before implementing it.
@@ -94,6 +117,10 @@ type
     property Required : Boolean read GetRequired write SetRequired;
     property LazyLoad : Boolean read GetLazyLoad write SetLazyLoad;
     property Values : TDictionary<String,String> read GetValues write SetValues;
+  end;
+
+  ITOMPropertyList = interface(IInterfaceList<ITOMPropertyBase>)
+      function GetItemByName(Name : String) : ITOMPropertyBase;
   end;
 
 
