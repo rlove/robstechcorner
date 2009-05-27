@@ -2,8 +2,16 @@ unit tomClasses;
 
 interface
 uses
-  SysUtils, Classes, Generics.Defaults, Generics.Collections, tomIntf, TypInfo;
+  SysUtils,
+  Classes,
+  Generics.Defaults,
+  Generics.Collections,
+  Generics.InterfaceList,
+  tomIntf,
+  TypInfo;
+
 type
+  ETOMException = class(Exception);
 {$M+}
   TOMSource = class(TObject)
 
@@ -50,7 +58,7 @@ type
     FChanged : Boolean;
     FState: TOMPropertyState;
     FValue: T;
-    FEntity : ITOMEntity;
+    FEntity : Pointer; // Pointer to keep it weak
     procedure SetState(const Value: TOMPropertyState); virtual;
     procedure SetOriginalValue(const Value: T); virtual;
     procedure SetValue(const Value: T); virtual;
@@ -84,25 +92,78 @@ type
 
   end;
 
+  TPropertyList = class(TInterfaceList<ITOMPropertyBase>,ITOMPropertyList)
+  protected
+    procedure BeforeDelete(Item : ITOMPropertyBase); override;
+  public
+    function GetItemByName(Name : String) : ITOMPropertyBase;
+  end;
 
 
   TOMCustomEntity = class(TInterfacedObject,ITOMEntity)
   private
   protected
+     FPropertyList : ITOMPropertyList;
+     FState : TEntityState;
   public
-//    property Attributes : TObjectList<TOMAttribute>;
-
+     constructor Create; virtual;
+     destructor Destroy; override;
+     function EntityPropertyCount : Integer;
+     function GetProperty(Name : String) : ITOMPropertyBase; overload;
+     function GetProperty(Index : Integer) : ITOMPropertyBase; overload;
+     function GetEntityState : TEntityState;
+     procedure SetEntityState(const Value : TEntityState);
+     property State : TEntityState read GetEntityState write SetEntityState;
   published
   end;
+
+  TOMSourceCollectionItem = class(TCollectionItem)
+  private
+    FName: string;
+    FSource: ITOMSource;
+    procedure SetSource(const Value: ITOMSource);
+  protected
+    function GetDisplayName: string; override;
+    procedure SetDisplayName(const Value: string); reintroduce;
+  published
+    property Name: string read FName write SetDisplayName;
+    property Source : ITOMSource read FSource write SetSource;
+  end;
+
+
+  TOMSourceCollection = class(TOwnedCollection)
+  public
+    constructor Create(AOwner: TPersistent);
+    function Find(const AName: string): TOMSourceCollectionItem;
+    function IndexOf(const AName: string): Integer;
+  end;
+
+
+  TOMContext = class(TComponent)
+  private
+    FSources: TOMSourceCollection;
+    procedure SetSources(const Value: TOMSourceCollection);
+  public
+    constructor Create(aOwner : TComponent); override;
+    destructor Destroy; override;
+  published
+    property Sources : TOMSourceCollection read FSources write SetSources;
+
+  end;
+
   {$M-}
+  const
+    SInvalidPropertyName = 'Invalid property Name: %s';
+    SDuplicateCollectionName = 'Duplicate name ''%s'' in TOMSourceCollection';
 
 implementation
+uses RTLConsts;
 
 { TOMAttribute }
 
 constructor TOMAttribute.Create;
 begin
-  FValues := TDictionary<String,String>.Create()
+  FValues := TDictionary<String,String>.Create();
 end;
 
 
@@ -171,7 +232,7 @@ end;
 constructor TOMProperty<T>.Create(const Name : String;const Entity: ITOMEntity);
 begin
   FPropName := Name;
-  FEntity := Entity;
+  FEntity := pointer(Entity);
   FComparer := TComparer<T>.Default;
   FAttributes := TOMAttribute.Create;
 end;
@@ -180,7 +241,7 @@ constructor TOMProperty<T>.Create(const Name : String;const Entity: ITOMEntity;
   const aComparer: IComparer<T>);
 begin
   FPropName := Name;
-  FEntity := Entity;
+  FEntity := pointer(Entity);
   FComparer := aComparer;
   if FComparer = nil then
   begin
@@ -214,7 +275,7 @@ end;
 
 function TOMProperty<T>.GetEntity: ITOMEntity;
 begin
-  Result := FEntity;
+  Result := ITOMEntity(FEntity);
 end;
 
 
@@ -252,7 +313,7 @@ end;
 
 procedure TOMProperty<T>.SetEntity(const Value: ITOMEntity);
 begin
-  FEntity := Value;
+  FEntity := pointer(Value);
 end;
 
 procedure TOMProperty<T>.SetOriginalValue(const Value: T);
@@ -287,5 +348,141 @@ begin
   FValue := Value;
 end;
 
+
+{ TOMCustomEntity }
+
+constructor TOMCustomEntity.Create;
+begin
+  FPropertyList := TPropertyList.Create;
+end;
+
+destructor TOMCustomEntity.Destroy;
+begin
+  FPropertyList.Clear;
+  FPropertyList := nil;
+  inherited;
+end;
+
+function TOMCustomEntity.EntityPropertyCount: Integer;
+begin
+  result := FPropertyList.Count;
+end;
+
+function TOMCustomEntity.GetEntityState: TEntityState;
+begin
+  result := FState;
+end;
+
+function TOMCustomEntity.GetProperty(Name: String): ITOMPropertyBase;
+begin
+  result := FPropertyList.GetItemByName(Name);
+end;
+
+function TOMCustomEntity.GetProperty(Index: Integer): ITOMPropertyBase;
+begin
+  result := FPropertyList.Items[Index];
+end;
+
+procedure TOMCustomEntity.SetEntityState(const Value: TEntityState);
+begin
+ // Maybe I should inforce some rules here... for
+ // letting the implementor shoot themselves in the foot.
+  FState := Value;
+end;
+
+{ TPropertyList }
+
+procedure TPropertyList.BeforeDelete(Item: ITOMPropertyBase);
+begin
+  // Release the Reference
+  Item.Entity := nil;
+end;
+
+function TPropertyList.GetItemByName(Name: String): ITOMPropertyBase;
+var
+ Item : ITOMPropertyBase;
+begin
+  for Item in Self do
+  begin
+    if (CompareText(Item.PropName,Name) = 0) then
+    begin
+       result := Item;
+       exit;
+    end;
+  end;
+  raise EListError.CreateFmt(SInvalidPropertyName,[Name]);
+end;
+
+{ TOMSourceCollectionItem }
+
+function TOMSourceCollectionItem.GetDisplayName: string;
+begin
+ result := FName;
+end;
+
+procedure TOMSourceCollectionItem.SetDisplayName(const Value: string);
+begin
+  if (Value <> '') and (WideCompareText(Value, FName) <> 0) and
+    (Collection is TOMSourceCollection) and
+    (TOMSourceCollection(Collection).IndexOf(Value) >= 0) then
+    raise ETOMException.CreateFmt(SDuplicateCollectionName, [Value]);
+  FName := Value;
+  inherited SetDisplayName(Value);
+
+end;
+
+procedure TOMSourceCollectionItem.SetSource(const Value: ITOMSource);
+begin
+
+end;
+
+{ TOMContext }
+
+constructor TOMContext.Create(aOwner: TComponent);
+begin
+  inherited;
+  FSources := TOMSourceCollection.Create(Self);
+
+end;
+
+
+destructor TOMContext.Destroy;
+begin
+  FreeAndNil(FSources);
+  inherited;
+end;
+
+procedure TOMContext.SetSources(const Value: TOMSourceCollection);
+begin
+  FSources := Value;
+end;
+
+{ TOMSourceCollection }
+
+constructor TOMSourceCollection.Create(AOwner: TPersistent);
+begin
+ inherited Create(AOwner,TOMSourceCollectionItem);
+
+end;
+
+function TOMSourceCollection.Find(const AName: string): TOMSourceCollectionItem;
+var
+  I: Integer;
+begin
+  I := IndexOf(AName);
+  if I < 0 then Result := nil else Result := TOMSourceCollectionItem(Items[I]);
+end;
+
+function TOMSourceCollection.IndexOf(const AName: string): Integer;
+begin
+  for Result := 0 to Count - 1 do
+  begin
+    if CompareText(TOMSourceCollectionItem(Items[Result]).Name, AName) = 0 then
+    begin
+       Exit;
+    end;
+  end;
+  Result := -1;
+end;
 
 end.
