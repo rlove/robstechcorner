@@ -68,7 +68,7 @@ const
 //specific mapping needs.
   FieldTypeMap : Array[TFieldType] of Integer =
    ( {ftUnknown} TDBXDataTypes.UnknownType, {ftString} TDBXDataTypes.AnsiStringType, {ftSmallint} TDBXDataTypes.Int16Type, {ftInteger} TDBXDataTypes.Int32Type, {ftWord} TDBXDataTypes.UInt16Type, // 0..4
-    {ftBoolean} TDBXDataTypes.BooleanType, {ftFloat} TDBXDataTypes.DoubleType, {ftCurrency} TDBXDataTypes.CurrencyType, {ftBCD} TDBXDataTypes.BcdType, {ftDate}TDBXDataTypes.DateType , {ftTime} TDBXDataTypes.TimeType, {ftDateTime} TDBXDataTypes.DateTimeType, // 5..11
+    {ftBoolean} TDBXDataTypes.BooleanType, {ftFloat} TDBXDataTypes.DoubleType, {ftCurrency} TDBXDataTypes.BcdType, {ftBCD} TDBXDataTypes.BcdType, {ftDate}TDBXDataTypes.DateType , {ftTime} TDBXDataTypes.TimeType, {ftDateTime} TDBXDataTypes.DateTimeType, // 5..11
     {ftBytes}TDBXDataTypes.BytesType , {ftVarBytes} TDBXDataTypes.VarBytesType, {ftAutoInc} TDBXDataTypes.AutoIncSubType, {ftBlob} TDBXDataTypes.BlobType, {ftMemo} TDBXDataTypes.MemoSubType, {ftGraphic} TDBXDataTypes.BlobType, {ftFmtMemo} TDBXDataTypes.MemoSubType, // 12..18
     {ftParadoxOle}TDBXDataTypes.UnknownType , {ftDBaseOle}TDBXDataTypes.UnknownType, {ftTypedBinary}TDBXDataTypes.BlobType, {ftCursor}TDBXDataTypes.UnknownType, {ftFixedChar}TDBXDataTypes.CharArrayType, {ftWideString} TDBXDataTypes.WideStringType,  // 19..24
     {ftLargeint}TDBXDataTypes.Int64Type, {ftADT}TDBXDataTypes.AdtType , {ftArray}TDBXDataTypes.ArrayType , {ftReference}TDBXDataTypes.UnknownType, {ftDataSet}TDBXDataTypes.UnknownType, {ftOraBlob}TDBXDataTypes.BlobType, {ftOraClob} TDBXDataTypes.BlobType, // 25..31
