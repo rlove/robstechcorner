@@ -165,6 +165,7 @@ begin
         CDS.Close;
         qryImport.Open;
         CDS.Open;
+        Rows := 0;
       end;
       DataSet.Next;
     end;
@@ -230,9 +231,12 @@ begin
     ConvertMetaData(tbl);
   end;
 
-  for tbl in TableList do
+  if Not MetadataOnly then
   begin
-    ConvertData(tbl);
+    for tbl in TableList do
+    begin
+      ConvertData(tbl);
+    end;
   end;
 
 end;
