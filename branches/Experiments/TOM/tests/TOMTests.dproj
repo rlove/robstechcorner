@@ -51,6 +51,10 @@
 			<DCCReference Include="..\tomIntf.pas"/>
 			<DCCReference Include="..\Generics.InterfaceList.pas"/>
 			<DCCReference Include="TestGenerics.pas"/>
+			<DCCReference Include="..\tomContext.pas"/>
+			<DCCReference Include="..\tomMetaData.pas"/>
+			<DCCReference Include="..\tomMapping.pas"/>
+			<DCCReference Include="tomCodeGen.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
