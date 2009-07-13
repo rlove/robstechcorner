@@ -23,7 +23,11 @@ uses
   tomClasses in '..\tomClasses.pas',
   tomIntf in '..\tomIntf.pas',
   Generics.InterfaceList in '..\Generics.InterfaceList.pas',
-  TestGenerics in 'TestGenerics.pas';
+  TestGenerics in 'TestGenerics.pas',
+  tomContext in '..\tomContext.pas',
+  tomMetaData in '..\tomMetaData.pas',
+  tomMapping in '..\tomMapping.pas',
+  tomCodeGen in 'tomCodeGen.pas';
 
 {$R *.RES}
 

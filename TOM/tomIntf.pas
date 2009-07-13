@@ -120,7 +120,12 @@ type
   end;
 
   ITOMPropertyList = interface(IInterfaceList<ITOMPropertyBase>)
+  ['{C1885A65-839D-4A0E-88A1-7B7FECBB6D73}']
       function GetItemByName(Name : String) : ITOMPropertyBase;
+  end;
+
+  ITOMContext = interface
+    ['{060FD512-4091-4FAA-9EF6-3B95B75A1426}']
   end;
 
 
