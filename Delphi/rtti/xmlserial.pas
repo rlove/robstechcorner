@@ -117,7 +117,7 @@ unit XmlSerial;
 //  x := TXmlDocument.Create(Self); // NEVER PASS NIL!!!
 //  s.Serialize(x,o);
 //  x.SaveToFile('FileName.txt');
-//  o := s.Derialize(x);
+// o := s.Deserialize(x);
 //  x.free;
 //  s.free;
 //end;
@@ -393,11 +393,20 @@ var
   Fields: TArray<TRttiField>;
   MemberMap: TMemberMap;
   Cnt: Integer;
+  RootAttr: TCustomAttribute;
 begin
   SetLength(Map.List, 0); // Clear Old Contents;
   Map.NodeType := ntElement;
   Map.ListType := ltNone;
-  Map.NodeName := aRttiType.name;
+  if TAttrUtils.HasAttribute(aContext, aRttiType, XmlRootAttribute, RootAttr)
+    then
+  begin
+    Map.NodeName := (RootAttr as XmlRootAttribute).ElementName;
+  end
+  else
+  begin
+    Map.NodeName := aRttiType.name;
+  end;
 
   // Cache lists to avoid having to make Call Twice
   Props := aRttiType.GetProperties;
@@ -607,7 +616,15 @@ begin
           Children := Node.ChildNodes;
           for MapItem in Map.List do
           begin
-            Child := Children.FindNode(MapItem.NodeName);
+            case MapItem.NodeType of
+              ntElement: Child := Children.FindNode(MapItem.NodeName);
+              ntAttribute: begin
+                             if Node.HasAttribute(MapItem.NodeName) then
+                               Child := Node.AttributeNodes.FindNode(MapItem.NodeName)
+                             else
+                               Child :=nil;
+                            end;
+            end; { Case }
             if Assigned(Child) then
             begin
               ChildValue := DeSerializeValue(Child, MapItem);
@@ -696,13 +713,10 @@ begin
     ntAttribute:
       begin
         // This should have already been done, so just assert instead of exception.
-        Assert(Map.ListType <> ltNone,
-          'XmlAtttribute applied to an Object Type');
-        Assert(Length(Map.List) > 0,
+        Assert(Map.ListType = ltNone, 'XmlAtttribute applied to an List Type');
+        Assert(Length(Map.List) = 0,
           'XmlAtttribute applied to a Map.List that is not Zero.');
-        NewNode := Doc.CreateNode(Map.NodeName, TNodeType.ntAttribute,
-          ValueToString(Value));
-        BaseNode.AttributeNodes.Add(NewNode);
+        BaseNode.Attributes[Map.NodeName] := ValueToString(Value);
       end;
   end;
 
