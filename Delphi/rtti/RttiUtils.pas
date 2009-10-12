@@ -23,7 +23,12 @@ unit RttiUtils;
 //
 
 interface
-uses SysUtils,Classes,Rtti,TypInfo;
+uses
+  Generics.Collections,
+  SysUtils,
+  Classes,
+  Rtti,
+  TypInfo;
 type
   ERttiMemberHelperException = class(Exception);
   // Make things a bit easier.
@@ -54,6 +59,87 @@ type
      class function GetAttributes(aType : pTypeinfo;aClass : TCustomAttributeClass) :  TArray<TCustomAttribute>; overload;
      class function GetAttributes(aContext : TRttiContext; aType : TRttiObject;aClass : TCustomAttributeClass): TArray<TCustomAttribute> ; overload;
   end;
+
+  TRttiEnumerator = class(TEnumerator<TValue>) // Adapater allowing a common interface
+  protected
+    FContext : TRttiContext;
+    FCurrentValue : TRttiProperty;
+    FMoveNext : TRttiMethod;
+    FInstance : TObject;
+    function DoGetCurrent: TValue; override;
+    function DoMoveNext: Boolean; override;
+  public
+    constructor Create(aEnumerator : TObject;aContext : TRttiContext;aCurrent :TRttiProperty; aMoveNext: TRttiMethod);
+  end;
+
+  TArrayEnumerator = class(TEnumerator<TValue>)// Adapater allowing a common interface
+  protected
+    FArray : TValue;
+    FIndex : Integer;
+    function DoGetCurrent: TValue; override;
+    function DoMoveNext: Boolean; override;
+  public
+    constructor Create(aArray : TValue);
+  end;
+
+  EEnumerableFactoryException = class(Exception);
+  // Factory to create the correct adapter
+  TEnumerableFactory = class (TEnumerable<TValue>)
+  protected
+     FValue : TValue;
+     function CreateRttiEnum(aValue : TValue): TRttiEnumerator;
+     function DoGetEnumerator: TEnumerator<TValue>; override;
+  public
+     constructor Create(aValue : TValue);
+     class function IsTypeSupported(aType : TRttiType): Boolean;
+  end;
+
+  EElementAddException = class(Exception);
+  ERttiElementAddException = class(EElementAddException);
+  EArrayElementAddException = class(EElementAddException);
+
+
+  TElementAdd = class abstract(TObject) // Adapater base class
+  protected
+    FList : TValue;
+  public
+    procedure Add(aAddElement : TValue); virtual; abstract;
+    procedure AddFinalize; virtual;  // Can't depend on the data to be added to FList until this called.
+    property List : TValue read FList;
+    constructor Create(aList : TValue); virtual;
+    class function TypeSupported(aListType : pTypeInfo) : Boolean; virtual; abstract;
+    class function GetAddType(aListType : pTypeInfo): pTypeInfo; virtual; abstract;
+  end;
+
+  TRttiElementAdd = class(TElementAdd) // Adapater
+  protected
+    FContext : TRttiContext;
+    FAddMethod : TRttiMethod;
+  public
+    procedure Add(aAddElement : TValue); override;
+    constructor Create(aList : TValue); override;
+    class function TypeSupported(aListType : pTypeInfo) : Boolean; override;
+    class function GetAddType(aListType : pTypeInfo): pTypeInfo; override;
+  end;
+
+  TArrayElementAdd = class(TElementAdd) // Adapater
+  protected
+    FTempList : TList<TValue>;
+  public
+    procedure Add(aAddElement : TValue); override;
+    procedure AddFinalize; override;
+    constructor Create(aList : TValue); override;
+    destructor Destroy; override;
+    class function TypeSupported(aListType : pTypeInfo) : Boolean; override;
+    class function GetAddType(aListType : pTypeInfo): pTypeInfo; override;
+  end;
+
+  TElementAddFactory = class(Tobject)
+    class function CreateElementAdd(Value : TValue) : TElementAdd;
+    class function TypeSupported(Value : pTypeInfo) : Boolean;
+    class function GetAddType(aListType : pTypeInfo): pTypeInfo;
+  end;
+
 
 
 implementation
@@ -221,5 +307,267 @@ begin
  end;
 end;
 
+{ TRttiEnumerator }
+
+constructor TRttiEnumerator.Create(aEnumerator : TObject;aContext : TRttiContext; aCurrent :TRttiProperty; aMoveNext: TRttiMethod);
+begin
+  FCurrentValue := aCurrent;
+  FMoveNext := aMoveNext;
+  FInstance := aEnumerator;
+  // Only need to keep a reference around to keep Method's from being freed.
+  FContext := aContext;
+end;
+
+function TRttiEnumerator.DoGetCurrent: TValue;
+begin
+  result := FCurrentValue.GetValue(FInstance);
+end;
+
+function TRttiEnumerator.DoMoveNext: Boolean;
+begin
+  result := FMoveNext.Invoke(FInstance,[]).AsBoolean;
+end;
+
+{ TArrayEnumerator }
+
+constructor TArrayEnumerator.Create(aArray: TValue);
+begin
+  FArray := aArray;
+  FIndex := -1;
+end;
+
+function TArrayEnumerator.DoGetCurrent: TValue;
+begin
+  result := FArray.GetArrayElement(FIndex);
+end;
+
+function TArrayEnumerator.DoMoveNext: Boolean;
+begin
+  inc(FIndex);
+  result := (FIndex > FArray.GetArrayLength);
+end;
+
+{ TEnumerableFactory }
+
+constructor TEnumerableFactory.Create(aValue: TValue);
+begin
+  FValue := aValue;
+end;
+
+function TEnumerableFactory.CreateRttiEnum(aValue: TValue): TRttiEnumerator;
+var
+ lContext : TRttiContext;
+ lGetEnum : TRttiMethod;
+ lEnumerator : TValue;
+ lMoveNext : TRttiMethod;
+ lCurrent : TRttiProperty;
+begin
+ lContext := TRttiContext.Create;
+ lGetEnum := lContext.GetType(aValue.TypeInfo).GetMethod('GetEnumerator');
+ if Not Assigned(lGetEnum) then
+    raise EEnumerableFactoryException.CreateFmt('No Enumerator Adapter avalable for Value Specified: %s',[FValue.TypeInfo.Name]);
+ lEnumerator := lGetEnum.Invoke(aValue,[]);
+
+ lMoveNext := lContext.GetType(lEnumerator.TypeInfo).GetMethod('MoveNext');
+ lCurrent := lContext.GetType(lEnumerator.TypeInfo).GetProperty('Current');
+
+ if Not Assigned(lMoveNext) then
+    raise EEnumerableFactoryException.CreateFmt('GetEnumerator did not return a method named MoveNext',[FValue.TypeInfo.Name]);
+
+ if Not Assigned(lCurrent) then
+    raise EEnumerableFactoryException.CreateFmt('GetEnumerator did not return a property named Current',[FValue.TypeInfo.Name]);
+
+ result := TRttiEnumerator.Create(lEnumerator.AsObject,lContext,lCurrent,lMoveNext);
+end;
+
+function TEnumerableFactory.DoGetEnumerator: TEnumerator<TValue>;
+begin
+  if FValue.IsEmpty then
+     raise EEnumerableFactoryException.Create('Value Specified is Empty, DoGetEnumerator requires an assigned TValue');
+
+  if FValue.IsArray then
+  begin
+     result := TArrayEnumerator.Create(FValue)
+  end
+  else if FValue.IsObject then
+       begin
+         result := CreateRttiEnum(FValue);
+       end
+       else raise EEnumerableFactoryException.CreateFmt('No Enumerator Adapter avalable for Value Type Specified: %s',[FValue.TypeInfo.Name]);
+end;
+
+class function TEnumerableFactory.IsTypeSupported(aType : TRttiType): Boolean;
+var
+ lContext : TRttiContext;
+ lGetEnum : TRttiMethod;
+ lEnumerator : TValue;
+begin
+ // Dynamic Arrays Supported
+ result := (aType.TypeKind = tkDynArray);
+
+ // if TObject then check for Enumerator
+ if aType.IsInstance then
+ begin
+     result := true;
+     lContext := TRttiContext.Create;
+     lGetEnum := aType.GetMethod('GetEnumerator');
+     if Not Assigned(lGetEnum) then
+        exit(false);
+     if not Assigned(lGetEnum.ReturnType) then
+        exit(false);
+     if not Assigned(lGetEnum.ReturnType.GetMethod('MoveNext')) then
+        exit(false);
+     if not Assigned(lGetEnum.ReturnType.GetProperty('Current')) then
+        exit(false);
+ end;
+end;
+
+{ TElementAdd }
+
+procedure TElementAdd.AddFinalize;
+begin
+ // Do Nothing by default
+end;
+
+constructor TElementAdd.Create(aList: TValue);
+begin
+  FList := aList;
+  if aList.IsEmpty then
+     raise EElementAddException.Create('Empty TValue passed to TElementAdd.Create');
+end;
+
+{ TRttiElementAdd }
+
+procedure TRttiElementAdd.Add(aAddElement: TValue);
+begin
+  FAddMethod.Invoke(FList,[aAddElement]);
+end;
+
+constructor TRttiElementAdd.Create(aList: TValue);
+begin
+  inherited;
+  FContext := TRttiContext.Create;
+  FAddMethod := FContext.GetType(aList.TypeInfo).GetMethod('Add');
+  if Not Assigned(FAddMethod) then
+     raise ERttiElementAddException.Create('Expected Add Method not found');
+  if Length(FAddMethod.GetParameters) <> 1 then
+     raise ERttiElementAddException.Create('Add Method with only one Parameter expected')
+end;
+
+class function TRttiElementAdd.GetAddType(aListType : pTypeInfo): pTypeInfo;
+var
+  lContext : TRttiContext;
+  lAddMethod : TRttiMethod;
+begin
+  lContext := TRttiContext.Create;
+  lAddMethod := lContext.GetType(aListType).GetMethod('Add');
+  if Not Assigned(lAddMethod) then
+     raise ERttiElementAddException.Create('Expected Add Method not found');
+  if Length(lAddMethod.GetParameters) <> 1 then
+     raise ERttiElementAddException.Create('Add Method with only one Parameter expected');
+  result := lAddMethod.GetParameters[0].ParamType.Handle;
+end;
+
+class function TRttiElementAdd.TypeSupported(aListType: pTypeInfo): Boolean;
+var
+ lContext : TRttiContext;
+ lAddMethod : TRttiMethod;
+begin
+  if aListType.Kind <> tkClass then
+     exit(false);
+  lContext := TRttiContext.Create;
+  lAddMethod := lContext.GetType(aListType).GetMethod('Add');
+  if Not Assigned(lAddMethod) then
+     exit(false);
+  if Length(lAddMethod.GetParameters) <> 1 then
+     exit(false);
+  result := true;
+end;
+
+{ TArrayElementAdd }
+
+procedure TArrayElementAdd.Add(aAddElement: TValue);
+begin
+  FTempList.Add(aAddElement);
+end;
+
+procedure TArrayElementAdd.AddFinalize;
+// Copy the FTempList to the End of the FList which will be an Array
+var
+  lNewArray : TValue;
+  lNewArrayPtr : Pointer;
+  Len : LongInt;
+  I : Integer;
+  lExistingArrayLen : Integer;
+begin
+  // Create New array
+  TValue.Make(nil,FList.TypeInfo,lNewArray);
+  // Set it's size and have to resort to lower levels as we don't have something that will work with SetLength()
+  lNewArrayPtr := lNewArray.GetReferenceToRawData;
+  lExistingArrayLen := FList.GetArrayLength;
+  Len := lExistingArrayLen + FTempList.Count;
+  DynArraySetLength(lNewArrayPtr,FList.TypeInfo,1,@Len);
+  // Copy Existing Values to New Array
+  for I := 0 to lExistingArrayLen - 1 do
+     lNewArray.SetArrayElement(I,FList.GetArrayElement(I));
+  // Copy Added Values to New Array
+  for I := 0 to FTempList.Count -1 do
+    lNewArray.SetArrayElement(I + lExistingArrayLen,FTempList.Items[I]);
+  // Finally Replace old Array with New Array
+  FList := lNewArray;
+end;
+
+constructor TArrayElementAdd.Create(aList: TValue);
+begin
+  inherited;
+  if not (aList.Kind = tkDynArray) then
+    raise EArrayElementAddException.Create('Expected an Dynamic array Type');
+  FTempList := TList<TValue>.Create;
+end;
+
+destructor TArrayElementAdd.Destroy;
+begin
+  FTempList.Free;
+  inherited;
+end;
+
+class function TArrayElementAdd.GetAddType(aListType : pTypeInfo): pTypeInfo;
+var
+ C : TRttiContext;
+begin
+  C := TRttiContext.Create;
+  result := (C.GetType(aListType) as TRttiDynamicArrayType).ElementType.Handle;
+end;
+
+class function TArrayElementAdd.TypeSupported(aListType: pTypeInfo): Boolean;
+begin
+ result := aListType.Kind = tkDynArray;
+end;
+
+{ TElementAddFactory }
+
+class function TElementAddFactory.CreateElementAdd(Value: TValue): TElementAdd;
+begin
+  if TArrayElementAdd.TypeSupported(Value.TypeInfo) then
+     result := TArrayElementAdd.Create(Value)
+  else if TRttiElementAdd.TypeSupported(Value.TypeInfo) then
+         result := TRttiElementAdd.Create(value)
+    else raise EElementAddException.CreateFmt('Unsupported TValue type: %s',[Value.TypeInfo.Name]);
+end;
+
+
+class function TElementAddFactory.GetAddType(aListType: pTypeInfo): pTypeInfo;
+begin
+  if TArrayElementAdd.TypeSupported(aListType) then
+     result := TArrayElementAdd.GetAddType(aListType)
+  else if TRttiElementAdd.TypeSupported(aListType) then
+         result := TRttiElementAdd.GetAddType(aListType)
+    else result := nil;
+end;
+
+class function TElementAddFactory.TypeSupported(Value: pTypeInfo): Boolean;
+begin
+ result := TRttiElementAdd.TypeSupported(Value) or TArrayElementAdd.TypeSupported(Value);
+end;
 
 end.

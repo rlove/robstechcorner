@@ -25,19 +25,27 @@ unit XmlSerial;
 // XmlSerial - Written by Robert Love
 // ---------------------------------------------------------------------------
 //
-// HISTORY:
+// Actual HISTORY:
 //
-// Version 0.1  
+// Version 0.1
 // -Basic support Classes and Record Properties
+// -Attribute Syntax is now supported.
 //
+// Version 0.2 (on going with each commit!)
+//   Changes to Help Support Lists, but not complete and really buggy right now
+//   Changes Made to support Float and TDateTime,TTime and TDate in XML File
+//   Version 0.2 TODO
+//     -Finish Array and Enumeration Support
+//     -Check and most likely add support for: Boolean, Decimal, BCD
+//     -Add support for Stream - BinHex or Base 64 or something else need to look at .NET
 // ---------------------------------------------------------------------------
 // Roadmap:  (if you want to help, let me know!)
 // ---------------------------------------------------------------------------
 //
-// Version 0.2 
+// Version 0.2
 // -Array and Enumerations(LIsts) (Although it will attempt and most likely fail with class that contain these types.
 //
-// Version 0.3 
+// Version 0.3
 // -DataTypes such as TDatetime need to match XML Types
 // -Testing to see if this produces files compatable with .NET Xml Serialization
 // HINT: Don't Depend on the structure produced until this is complete!
@@ -168,23 +176,19 @@ type
     NodeName: string;
   end;
 
-  TMemberListType = (ltNone, ltArray, ltEnum);
+  TMemberListType = (ltNone, ltEnum,ltArray);
+  TMemberListTypeSet = set of TMemberListType;
+const
+  ValidMemberList : TMemberListTypeSet = [ltEnum,ltArray];
 
+type
   TMemberMap = record
-  private
-    class function isListType(aMember: TRttiMember; var ElementType: PTypeInfo;
-      var aEnum, aAdd: TRttiMethod): boolean; static;
-    class function hasGetEnumerator(aMemberType: TRttiType;
-      var aEnum, aAdd: TRttiMethod): boolean; static;
-
   public
     Member: TRttiMember;
     NodeName: string;
     NodeType: TMemberNodeType;
-    ListType: TMemberListType;
+    isList : Boolean;
     List: TArray<TMemberMap>;
-    EnumMethod: TRttiMethod;
-    AddMethod: TRttiMethod;
     class function CreateMap(var aCtx: TRttiContext; aMember: TRttiMember)
       : TMemberMap; static;
   end;
@@ -192,6 +196,7 @@ type
   TTypeMapping = class(TObject)
   public
     Map: TMemberMap;
+    function XmlSafeName(const Name : String) : String;
     procedure Populate(var aContext: TRttiContext; aType: PTypeInfo); overload;
     procedure Populate(var aContext: TRttiContext; aRttiType: TRttiType);
       overload;
@@ -241,7 +246,7 @@ type
 
 implementation
 
-uses  RttiUtils;
+uses  XsBuiltins, RttiUtils;
 
 { XmlElementAttribute }
 
@@ -279,7 +284,7 @@ begin
   Result.NodeType := ntElement;
   Result.Member := aMember;
   Result.NodeName := aMember.name;
-  Result.ListType := ltNone;
+  Result.isList := false;
   Result.List := nil;
   Dupe := 0;
   if aMember is TRttiProperty then
@@ -317,24 +322,15 @@ begin
 
   if (Result.NodeType <> ntNone) then
   begin
-    if isListType(aMember, ElementType, Result.AddMethod, Result.EnumMethod)
-      then
+    if TEnumerableFactory.IsTypeSupported(aMember.MemberType) and TElementAddFactory.TypeSupported(aMember.MemberType.Handle) then
     begin
-      if Assigned(Result.AddMethod) then
-      begin
-        Result.ListType := ltEnum;
-      end
-      else
-      begin
-        Result.ListType := ltArray;
-        MemberType := (MemberType as TRttiDynamicArrayType).ElementType;
-      end;
-
+      result.isList := true;
+      MemberType := aCtx.GetType(TArrayElementAdd.GetAddType(aMember.MemberType.Handle));
       if Result.NodeType = ntAttribute then
       begin
         raise EXmlSerializationError.CreateFmt(
-          'TXmlAttributeAttribute not supported for this member: %s.%s',
-          [aMember.Parent.QualifiedName, aMember.name]);
+           'TXmlAttributeAttribute not supported for this member: %s.%s',
+             [aMember.Parent.QualifiedName, aMember.name]);
       end;
       TypMp := TTypeMapping.create;
       try
@@ -355,10 +351,6 @@ begin
       end
       else
       begin
-        if (MemberType is TRttiDynamicArrayType) then
-        begin
-          MemberType := TRttiDynamicArrayType(MemberType).ElementType;
-        end;
         if MemberType.TypeKind in [tkRecord, tkClass] then
         begin
           TypMp := TTypeMapping.create;
@@ -394,10 +386,13 @@ var
   MemberMap: TMemberMap;
   Cnt: Integer;
   RootAttr: TCustomAttribute;
+  TypMp  : TTypeMapping;
 begin
-  SetLength(Map.List, 0); // Clear Old Contents;
+  // Clear Old Contents and set Default Values
+  SetLength(Map.List, 0);
   Map.NodeType := ntElement;
-  Map.ListType := ltNone;
+  Map.isList := false;
+
   if TAttrUtils.HasAttribute(aContext, aRttiType, XmlRootAttribute, RootAttr)
     then
   begin
@@ -405,136 +400,68 @@ begin
   end
   else
   begin
-    Map.NodeName := aRttiType.name;
+    Map.NodeName := XmlSafeName(aRttiType.name);
   end;
 
-  // Cache lists to avoid having to make Call Twice
-  Props := aRttiType.GetProperties;
-  Fields := aRttiType.GetFields;
-  // Set to Max Possible Length
-  SetLength(Map.List, Length(Props) + Length(Fields));
-  Cnt := 0;
-  for Field in aRttiType.GetFields do
+  if TEnumerableFactory.IsTypeSupported(aRttiType) and TElementAddFactory.TypeSupported(aRttiType.Handle) then
   begin
-    if Field.Visibility in [mvPublic, mvPublished] then
-    begin
-      MemberMap := TMemberMap.CreateMap(aContext, Field);
-      if MemberMap.NodeType <> ntNone then
-      begin
-        Map.List[Cnt] := MemberMap;
-        inc(Cnt);
-      end;
+    Map.isList := true;
+
+    TypMp := TTypeMapping.create;
+    try
+      TypMp.Populate(aContext, aContext.GetType(TElementAddFactory.GetAddType(aRttiType.Handle)));
+      Map.List := TypMp.Map.List;
+    finally
+      TypMp.Free;
     end;
-  end;
-
-  for Prop in Props do
-  begin
-    if Prop.Visibility in [mvPublic, mvPublished] then
-    begin
-      MemberMap := TMemberMap.CreateMap(aContext, Prop);
-      if MemberMap.NodeType <> ntNone then
-      begin
-        Map.List[Cnt] := MemberMap;
-        inc(Cnt);
-      end;
-    end;
-  end;
-
-  // Set Length back to size calculated
-  SetLength(Map.List, Cnt);
-end;
-
-class function TMemberMap.hasGetEnumerator(aMemberType: TRttiType;
-  var aEnum, aAdd: TRttiMethod): boolean;
-var
-  Methods: TArray<TRttiMethod>;
-  Method: TRttiMethod;
-  EnumType: TRttiType;
-  Params: TArray<TRttiParameter>;
-  Base: TRttiType;
-begin
-  // Rules: Need to have a method called "GetEnumerator" and a Add method that
-  // has one parameter that is compatiable with the type
-  // returned by GetEnumererator.Current
-
-  aEnum := aMemberType.GetMethod('GetEnumerator');
-  // enumerators need a current property and a MoveNext Method
-  if not Assigned(aEnum) then
-    exit(false);
-  if not Assigned(aEnum.ReturnType.GetProperty('Current')) then
-    exit(false);
-  if not Assigned(aEnum.ReturnType.GetMethod('MoveNext')) then
-    exit(false);
-  EnumType := aEnum.ReturnType.GetProperty('Current').PropertyType;
-  Methods := aMemberType.GetMethods('Add');
-  Result := false;
-  for Method in Methods do
-  begin
-    Params := Method.GetParameters;
-    if Length(Params) = 2 then // Self + Value to Add
-    begin
-      // Only one parameter(other than self), lets see if we found the method.
-
-      // if not the same type kind then go to next method.
-      if (Params[1].ParamType.TypeKind <> EnumType.TypeKind) then
-      begin
-        Continue;
-      end;
-
-      // if the Qualified names are the same we are ok, and found best match
-      if (Params[1].ParamType.QualifiedName = EnumType.QualifiedName) then
-      begin
-        aAdd := Method;
-        exit(true);
-      end;
-
-      if Params[1].ParamType.IsInstance then
-      begin
-        // Work down the EnumType Value and compare to see if any match, Params
-        Base := EnumType;
-        while Base <> nil do
-        begin
-          if Base.QualifiedName = Params[1].ParamType.QualifiedName then
-          begin
-            aAdd := Method;
-            exit(true);
-          end;
-          Base := Base.BaseType;
-        end;
-      end
-    end;
-  end;
-end;
-
-class function TMemberMap.isListType(aMember: TRttiMember;
-  var ElementType: PTypeInfo; var aEnum, aAdd: TRttiMethod): boolean;
-var
-  mType: TRttiType;
-begin
-  Result := false;
-  aEnum := nil;
-  aAdd := nil;
-
-  if (aMember is TRttiProperty) then
-    mType := TRttiProperty(aMember).PropertyType
-  else if (aMember is TRttiField) then
-    mType := TRttiField(aMember).FieldType
-  else
-    raise EXmlSerializationError.CreateFmt
-      ('Unexpected Member type %s', [aMember.name]);
-
-  // Check for Array First.
-  if mType.TypeKind in [tkArray, tkDynArray] then
-  begin
-    ElementType := mType.Handle;
-    Result := true;
   end
-  else if (mType.TypeKind = tkClass) and hasGetEnumerator(mType, aEnum, aAdd)
-    then
+  else
   begin
-    Result := true;
-  end;
+    // Cache lists to avoid having to make Call Twice
+    Props := aRttiType.GetProperties;
+    Fields := aRttiType.GetFields;
+    // Set to Max Possible Length
+    SetLength(Map.List, Length(Props) + Length(Fields));
+    Cnt := 0;
+    for Field in aRttiType.GetFields do
+    begin
+      if Field.Visibility in [mvPublic, mvPublished] then
+      begin
+        MemberMap := TMemberMap.CreateMap(aContext, Field);
+        if MemberMap.NodeType <> ntNone then
+        begin
+          Map.List[Cnt] := MemberMap;
+          inc(Cnt);
+        end;
+      end;
+    end;
 
+    for Prop in Props do
+    begin
+      if Prop.Visibility in [mvPublic, mvPublished] then
+      begin
+        MemberMap := TMemberMap.CreateMap(aContext, Prop);
+        if MemberMap.NodeType <> ntNone then
+        begin
+          Map.List[Cnt] := MemberMap;
+          inc(Cnt);
+        end;
+      end;
+    end;
+
+    // Set Length back to size calculated
+    SetLength(Map.List, Cnt);
+  end;
+end;
+
+function TTypeMapping.XmlSafeName(const Name: String): String;
+begin
+//TODO: Figure out how .NET does it to duplicate
+// I think in .NET the it might be done with the System.Xml.XmlConvert class
+
+// This is a temp fix to get Generic Types TList<ASDF> to work
+ result := StringReplace(Name,'<','.',[rfReplaceAll]);
+ result := StringReplace(result,'>','.',[rfReplaceAll]);
 end;
 
 { TXmlCustomTypeSerializer }
@@ -590,8 +517,14 @@ var
   ResultType: TRttiType;
 
 begin
-  case Map.ListType of
-    ltNone:
+  if Map.isList then
+  begin
+    Children := Node.ChildNodes;
+    Result := TValue.Empty; // TODO
+  end
+  else
+  begin
+
       begin
         if (Length(Map.List) > 0) then // Must be Structured Type
         begin
@@ -639,13 +572,6 @@ begin
           Result := TextToValue(Map.Member.MemberType, Node.Text);
         end;
       end;
-    ltArray:
-      begin
-        Children := Node.ChildNodes;
-        Result := TValue.Empty; // TODO
-      end;
-    ltEnum:
-      Result := TValue.Empty; // TODO
   end;
 end;
 
@@ -673,7 +599,6 @@ procedure TXmlCustomTypeSerializer.SerializeValue
   Doc: TXmlDocument);
 var
   NewNode: IXMLNode;
-  Enumerator: TValue;
   CurrentProp: TRttiProperty;
   MoveNextMethod: TRttiMethod;
   EnumNode: IXMLNode;
@@ -681,6 +606,8 @@ var
   CurrentValue: TValue;
   MapItem: TMemberMap;
   I: Integer;
+  EnumFactory :  TEnumerableFactory;
+  Enumerator : TEnumerator<TValue>;
 begin
   case Map.NodeType of
     ntNone:
@@ -694,7 +621,7 @@ begin
         // if Record or Object
         if Length(Map.List) > 0 then
         begin
-          if (Map.ListType = ltNone) then
+          if Not (Map.isList) then
           begin
             for MapItem in Map.List do
             begin
@@ -706,56 +633,34 @@ begin
         end
         else
         begin
-          if (Map.ListType = ltNone) then
+          if Not (Map.isList) then
             NewNode.Text := ValueToString(Value);
         end;
       end;
     ntAttribute:
       begin
         // This should have already been done, so just assert instead of exception.
-        Assert(Map.ListType = ltNone, 'XmlAtttribute applied to an List Type');
+        Assert(not Map.isList, 'XmlAtttribute applied to an List Type');
         Assert(Length(Map.List) = 0,
           'XmlAtttribute applied to a Map.List that is not Zero.');
         BaseNode.Attributes[Map.NodeName] := ValueToString(Value);
       end;
   end;
 
-  case Map.ListType of
-    ltNone:
-      exit; // Do Nothing
-    ltArray:
-      begin
-        Assert(Value.IsArray, 'Expecting an Array Value');
-        EnumNodeData := Map;
-        EnumNodeData.NodeName := 'item';
-        EnumNodeData.ListType := ltNone;
-        EnumNode := NewNode.AddChild(Map.NodeName, '');
-        for I := 0 to Value.GetArrayLength - 1 do
-        begin
-          CurrentValue := Value.GetArrayElement(I);
-          SerializeValue(CurrentValue, EnumNodeData, NewNode, Doc);
-        end;
-      end;
-    ltEnum:
-      begin
-        Assert(Assigned(Map.EnumMethod) and Assigned(Map.AddMethod),
-          'Expected Add and Enum Method to be assigned');
-        // Excute Enumerator
-        Enumerator := Map.EnumMethod.Invoke(Value, []);
-        CurrentProp := FCtx.GetType(Enumerator.TypeInfo).GetProperty('Current');
-        MoveNextMethod := FCtx.GetType(Enumerator.TypeInfo).GetMethod
-          ('MoveNext');
-        EnumNodeData := Map;
-        EnumNodeData.NodeName := 'item';
-        EnumNodeData.ListType := ltNone;
-        while MoveNextMethod.Invoke(Enumerator, []).AsBoolean do
-        begin
-          CurrentValue := CurrentProp.GetValue(Enumerator.AsObject);
-          EnumNode := NewNode.AddChild(CurrentProp.PropertyType.name, '');
-          SerializeValue(CurrentValue, EnumNodeData, NewNode, Doc);
-        end;
-
-      end;
+  if Map.isList then
+  begin
+    EnumNodeData := Map;
+    EnumNodeData.NodeName := 'item';
+    EnumNodeData.isList := false;
+  
+    EnumFactory := TEnumerableFactory.Create(Value);
+    Enumerator := EnumFactory.GetEnumerator;
+    while Enumerator.MoveNext do
+    begin
+      CurrentValue := Enumerator.Current;
+      EnumNode := NewNode.AddChild(TElementAddFactory.GetAddType(Value.TypeInfo).Name , '');
+      SerializeValue(CurrentValue, EnumNodeData, NewNode, Doc);
+    end;
   end;
 end;
 
@@ -763,6 +668,9 @@ function TXmlCustomTypeSerializer.TextToValue
   (aType: TRttiType; const aText: string): TValue;
 var
   I: Integer;
+  xsDate : TXSDate;
+  xsTime : TXSTime;
+  xsDateTime : TXSDateTime;
 begin
   case aType.TypeKind of
     tkWChar, tkLString, tkWString, tkString, tkChar, tkUString:
@@ -770,7 +678,41 @@ begin
     tkInteger, tkInt64:
       Result := StrToInt(aText);
     tkFloat:
-      Result := StrToFloat(aText); // TODO TDateTime
+    begin
+      if aType.Name = 'TDate' then
+      begin
+        xsDate := TXSDate.Create;
+        try
+        xsDate.XSToNative(aText);
+        result := xsDate.AsDate;
+        finally
+           xsDate.Free;
+        end;
+      end
+      else if aType.Name = 'TTime' then
+      begin
+        xsTime := TXSTime.Create;
+        try
+        xsTime.XSToNative(aText);
+        result := xsTime.AsTime;
+        finally
+           xsTime.Free;
+        end;
+
+      end
+      else if aType.Name = 'TDateTime' then
+      begin
+        xsDateTime := TXSDateTime.Create;
+        try
+        xsDateTime.XSToNative(aText);
+        result := xsDateTime.AsDateTime;
+        finally
+           xsDateTime.Free;
+        end;
+      end
+      else   Result :=  SoapStrToFloat(aText);
+
+    end;
     tkEnumeration:
       Result := TValue.FromOrdinal
         (aType.Handle, GetEnumValue(aType.Handle, aText));
@@ -786,9 +728,59 @@ begin
 end;
 
 function TXmlCustomTypeSerializer.ValueToString(const Value: TValue): string;
+var
+  xsDate : TXSDate;
+  xsTime : TXSTime;
+  xsDateTime : TXSDateTime;
 begin
-  // TODO: Need to do TDateTime and other conversions, as needed by XML...
-  Result := Value.ToString;
+
+  case Value.Kind of
+    tkWChar, tkLString, tkWString, tkString, tkChar, tkUString:
+      Result := Value.ToString;
+    tkInteger, tkInt64:
+      Result := Value.ToString;
+    tkFloat:
+    begin
+      if Value.TypeInfo.Name = 'TDate' then
+      begin
+        xsDate := TXSDate.Create;
+        try
+        xsDate.AsDate := Value.AsExtended;
+        result :=  xsDate.NativeToXS;
+        finally
+           xsDate.Free;
+        end;
+      end
+      else if Value.TypeInfo.Name = 'TTime' then
+      begin
+        xsTime := TXSTime.Create;
+        try
+        xsTime.AsTime := Value.AsExtended;
+        result :=  xsTime.NativeToXS;
+        finally
+           xsTime.Free;
+        end;
+      end
+      else if Value.TypeInfo.Name = 'TDateTime' then
+      begin
+        xsDateTime := TXSDateTime.Create;
+        try
+          xsDateTime.AsDateTime := Value.AsExtended;
+          result :=  xsDateTime.NativeToXS;
+        finally
+           xsDateTime.Free;
+        end;
+      end
+      else
+         Result :=  SoapFloatToStr(Value.AsExtended);
+    end;
+    tkEnumeration:
+      Result := Value.ToString;
+    tkSet:
+      Result := Value.ToString;
+  else
+    raise EXmlSerializationError.create('Type not Supported, yet...');
+  end;
 end;
 
 { TXmlTypeSerializer }
