@@ -140,6 +140,38 @@ type
     class function GetAddType(aListType : pTypeInfo): pTypeInfo;
   end;
 
+  // Goal Abstract functionality of TRttiMember's TRttiProperty and TRttiField
+  // allowing a common interface and an ability to have things that don't map
+  // to properties as TFields on a TDataSet work as if they did have Properties
+  TAbstractMemberValue = class abstract(TObject)
+  protected
+    function GetName : String; virtual; abstract;
+    function GetMemberType: TRttiType; virtual; abstract;
+    function GetIsReadable: Boolean; virtual; abstract;
+    function GetIsWritable: Boolean; virtual; abstract;
+    function DoGetValue(Instance: Pointer): TValue; virtual; abstract;
+    procedure DoSetValue(Instance: Pointer; const AValue: TValue); virtual; abstract;
+    function GetVisibility: TMemberVisibility; virtual; abstract;
+  public
+    property IsReadable: Boolean read GetIsReadable;
+    property IsWritable: Boolean read GetIsWritable;
+
+    function GetValue(Instance: Pointer): TValue;
+    procedure SetValue(Instance: Pointer; const AValue: TValue);
+
+    property MemberType : TRttiType read GetMemberType;
+    property Name : String read GetName;
+    property Visibility: TMemberVisibility read GetVisibility;
+  end;
+
+  TAbstractRttiMemberValue = class abstract(TAbstractMemberValue)
+  protected
+    FMember : TRttiMember;
+    function GetName : String; override;
+    function GetVisibility: TMemberVisibility; override;
+  public
+    constructor Create(aMember : TRttiMember);
+  end;
 
 
 implementation
@@ -568,6 +600,40 @@ end;
 class function TElementAddFactory.TypeSupported(Value: pTypeInfo): Boolean;
 begin
  result := TRttiElementAdd.TypeSupported(Value) or TArrayElementAdd.TypeSupported(Value);
+end;
+
+{ TAbstractMemberValue }
+
+function TAbstractMemberValue.GetValue(Instance: Pointer): TValue;
+begin
+  if not IsReadable then
+    raise EPropWriteOnly.Create(Name);
+  Result := DoGetValue(Instance);
+end;
+
+procedure TAbstractMemberValue.SetValue(Instance: Pointer;
+  const AValue: TValue);
+begin
+  if not IsWritable then
+    raise EPropReadOnly.Create(Name);
+  DoSetValue(Instance, AValue);
+end;
+
+{ TRttiMemberValue }
+
+constructor TAbstractRttiMemberValue.Create(aMember: TRttiMember);
+begin
+  FMember := aMember;
+end;
+
+function TAbstractRttiMemberValue.GetName: String;
+begin
+  result := FMember.Name;
+end;
+
+function TAbstractRttiMemberValue.GetVisibility: TMemberVisibility;
+begin
+ result := FMember.Visibility;
 end;
 
 end.
