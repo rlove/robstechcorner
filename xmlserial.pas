@@ -96,7 +96,7 @@ unit XmlSerial;
 //  The design is done to avoid having to query the RTTI information more than
 //  needed. If you have to handle multiple Serialize or DeSerialize
 //  calls during the scope of your application.   Performance wise it might
-//  make since to cache the serializer, and not recreate each time.
+//  make semse to cache the serializer, and not recreate each time.
 //
 //
 // Method 1:
@@ -129,10 +129,12 @@ unit XmlSerial;
 //  x.free;
 //  s.free;
 //end;
+
+
 interface
 
 uses SysUtils, Classes, TypInfo, XmlDoc, XmlIntf, RTTI, Generics.Defaults,
-  Generics.Collections;
+  SyncObjs,  Generics.Collections;
 
 type
 
@@ -189,6 +191,7 @@ type
     NodeType: TMemberNodeType;
     isList : Boolean;
     List: TArray<TMemberMap>;
+    class function XmlTypeName(aType : pTypeInfo) : String; static;
     class function CreateMap(var aCtx: TRttiContext; aMember: TRttiMember)
       : TMemberMap; static;
   end;
@@ -241,6 +244,27 @@ type
   end;
 
   TCustomAttributeClass = class of TCustomAttribute;
+
+  TTypeNameMarshling = class abstract(TObject)
+  protected
+  public
+    function TypeName(aType : TRttiType) : String; virtual; abstract;
+  end;
+
+  TXmlDotNetNameMarshling = class (TTypeNameMarshling)
+  private
+  protected
+    class var
+      CS : TCriticalSection;
+      Cache : TDictionary<string,string>;
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  public
+    function TypeName(aType : TRttiType) : String; override;
+  end;
+
+
+
 
   PObject = ^TObject;
 
@@ -464,6 +488,28 @@ begin
  result := StringReplace(result,'>','.',[rfReplaceAll]);
 end;
 
+class function TMemberMap.XmlTypeName(aType: pTypeInfo): String;
+begin
+// I suspect later in performance tuning we will find out this function
+// could be optimized and maybe a cached sorted list of results may be in
+// order.  But I think getting the functionality written correctly is more important
+// right now.
+
+case aType.Kind of
+  tkLString, tkWString,tkString, tkUString : result := 'string';
+  tkFloat : begin
+
+            end;
+  else result := aType.Name;
+end;
+//     tkUnknown, tkInteger, tkChar, tkEnumeration, tkFloat,
+//    tkString, tkSet, tkClass, tkMethod, tkWChar, tkLString, tkWString,
+//    tkVariant, tkArray, tkRecord, tkInterface, tkInt64, tkDynArray, tkUString,
+//    tkClassRef, tkPointer, tkProcedure);
+
+
+end;
+
 { TXmlCustomTypeSerializer }
 
 constructor TXmlCustomTypeSerializer.create(aType: PTypeInfo);
@@ -578,7 +624,6 @@ end;
 destructor TXmlCustomTypeSerializer.Destroy;
 begin
   FMemberMap.Free;
-  FCtx.Free;
   inherited;
 end;
 
@@ -824,6 +869,98 @@ var
 begin
   V := TValue.From<T>(ValueToSerialize);
   inherited Serialize(Doc, V);
+end;
+
+
+{ TXmlDotNetNameMarshling }
+
+class constructor TXmlDotNetNameMarshling.ClassCreate;
+begin
+  Cache := TDictionary<string,string>.Create;
+  // Standard Types and how .NET returns them,
+  // it would not be my choice for type names
+  // a name like unsignedByte for a single byte seems insane.
+  Cache.Add('system.byte','unsignedByte'); // do not localize
+  Cache.Add('system.shortint','byte'); // do not localize
+  Cache.Add('system.smallint','short'); // do not localize
+  Cache.Add('system.longint','int'); // do not localize
+  Cache.Add('system.integer','int'); // do not localize
+  Cache.Add('system.int64','long'); // do not localize
+  Cache.Add('system.word','short'); // do not localize
+  Cache.Add('system.longword','int'); // do not localize
+  Cache.Add('system.cardinal','int'); // do not localize
+  Cache.Add('system.uint64','long'); // do not localize
+  Cache.Add('system.boolean','boolean'); // do not localize
+  Cache.Add('system.double','double'); // do not localize
+  Cache.Add('system.extended','double'); // do not localize
+  Cache.Add('system.comp','double'); // do not localize
+  Cache.Add('system.currency','double'); // do not localize
+  Cache.Add('system.single','float'); // do not localize
+  Cache.Add('system.tdate','dateTime'); // do not localize
+  Cache.Add('system.tdatetime','dateTime'); // do not localize
+  Cache.Add('system.time','dateTime'); // do not localize
+  CS := TCriticalSection.Create;
+end;
+
+class destructor TXmlDotNetNameMarshling.ClassDestroy;
+begin
+  Cache.Free;
+  CS.Free;
+end;
+
+function TXmlDotNetNameMarshling.TypeName(aType: TRttiType): String;
+var
+ token : String;
+ Idx : Integer;
+ tokenStart : Integer;
+ tokenLen : Integer;
+ lowertype : String;
+ typelen : Integer;
+
+begin
+  CS.Acquire;
+  try
+    lowertype := lowercase(aType.Name);
+    if not Cache.TryGetValue(lowertype,result) then
+    begin
+      //TODO: Implement Enumerations such as TList<Integer> = ArrayOfInt
+
+      idx := Pos(lowertype,'<');
+      if idx > 0 then  // Check to see if Generic Type
+      begin
+        result := Copy(aType.Name,1,idx) + 'Of'; // do not localize
+        typelen := Length(lowertype);
+        tokenStart := idx + 1;
+        while idx < typelen do
+        begin
+          inc(idx);
+          if CharInSet(lowertype[idx],[',','>']) then
+          begin
+            token := copy(lowertype,tokenstart,tokenstart-idx); // Mixed case name on purpose
+            if Not Cache.TryGetValue(token,token) then // Replace token with what is in cache as the case and name may change
+            begin
+              // pTypeInfo.Name does not include Unit Name
+               Cache.Add(token, aType.Handle.Name);
+               Token := aType.Handle.Name;
+            end;
+            result := result + token;
+            tokenStart := idx + 1;
+          end;
+          if lowerType[idx]= '<' then
+          begin
+             result := result + Copy(aType.Name,tokenstart,tokenstart-idx) + 'Of'; // do not localize
+             tokenStart := idx + 1;
+          end;
+        end;
+      end
+      else result := aType.Handle.Name;
+
+
+      Cache.Add(lowertype,result);
+    end;
+  finally
+    CS.Release;
+  end;
 end;
 
 end.
