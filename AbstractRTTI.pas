@@ -101,8 +101,6 @@ type
 
     function HasAttribute(aClass : TCustomAttributeClass) : Boolean; overload; virtual;
     function HasAttribute(aClass : TCustomAttributeClass;var Attr : TCustomAttribute) : Boolean; overload; virtual;
-
-
   end;
 
   TatsRTTIValueType = class(TatsValueType)
@@ -125,7 +123,7 @@ type
 
   TatsValueTypeFactory = class(TObject)
   public
-    class function CreateValueType(Value : TValue;);
+//    class function CreateValueType(Value : TValue);
   end;
 
 implementation
@@ -352,6 +350,7 @@ var
 begin
  C := TRttiContext.Create;
  t :=  C.GetType(value.TypeInfo);
+ FFieldList.Clear;
  for field in t.GetFields do
    FFieldList.Add(TatsRTTIField.Create(field));
 end;
@@ -364,8 +363,9 @@ var
 begin
  C := TRttiContext.Create;
  t :=  C.GetType(value.TypeInfo);
+ FPropertyList.Clear;
  for prop in t.GetProperties do
-   FFieldList.Add(TatsRTTIField.Create(prop));
+   FPropertyList.Add(TatsRTTIProperty.Create(prop));
 end;
 
 procedure TatsRTTIValueType.SetValue(const aValue: TValue);
