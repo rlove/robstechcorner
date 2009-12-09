@@ -111,70 +111,60 @@ begin
   FTypeMapping.Populate(aContext, TxmlTest.ClassInfo);
   CheckEquals('TxmlTest',FTypeMapping.Map.NodeName,'1');
   Check(FTypeMapping.Map.NodeType = TMemberNodeType.ntElement,'2');
-  Check(FTypeMapping.Map.ListType = TMemberListType.ltNone,'3');
   CheckEquals(9,Length(FTypeMapping.Map.List),'4');
 
   CheckEquals('I',FTypeMapping.Map.List[0].NodeName,'[0] - NodeName');
   Check(Assigned(FTypeMapping.Map.List[0].Member),'[0] - Member');
   CheckEquals('I',FTypeMapping.Map.List[0].Member.Name,'[0] - Member.Name');
   Check(FTypeMapping.Map.List[0].NodeType = TMemberNodeType.ntElement,'[0] - NodeType');
-  Check(FTypeMapping.Map.List[0].ListType = TMemberListType.ltNone,'[0] - ListType');
   CheckEquals(0,Length(FTypeMapping.Map.List[0].List),'[0] - List Length');
 
   CheckEquals('Str',FTypeMapping.Map.List[1].NodeName,'[1] - NodeName');
   Check(Assigned(FTypeMapping.Map.List[1].Member),'[1] - Member');
   CheckEquals('Str',FTypeMapping.Map.List[1].Member.Name,'[1] - Member.Name');
   Check(FTypeMapping.Map.List[1].NodeType = TMemberNodeType.ntElement,'[1] - NodeType');
-  Check(FTypeMapping.Map.List[1].ListType = TMemberListType.ltNone,'[1] - ListType');
   CheckEquals(0,Length(FTypeMapping.Map.List[1].List),'[1] - List Length');
 
   CheckEquals('E',FTypeMapping.Map.List[2].NodeName,'[2] - NodeName');
   Check(Assigned(FTypeMapping.Map.List[2].Member),'[2] - Member');
   CheckEquals('E',FTypeMapping.Map.List[2].Member.Name,'[2] - Member.Name');
   Check(FTypeMapping.Map.List[2].NodeType = TMemberNodeType.ntElement,'[2] - NodeType');
-  Check(FTypeMapping.Map.List[2].ListType = TMemberListType.ltNone,'[2] - ListType');
   CheckEquals(0,Length(FTypeMapping.Map.List[2].List),'[2] - List Length');
 
   CheckEquals('S',FTypeMapping.Map.List[3].NodeName,'[3] - NodeName');
   Check(Assigned(FTypeMapping.Map.List[3].Member),'[3] - Member');
   CheckEquals('S',FTypeMapping.Map.List[3].Member.Name,'[3] - Member.Name');
   Check(FTypeMapping.Map.List[3].NodeType = TMemberNodeType.ntElement,'[3] - NodeType');
-  Check(FTypeMapping.Map.List[3].ListType = TMemberListType.ltNone,'[3] - ListType');
   CheckEquals(0,Length(FTypeMapping.Map.List[3].List),'[3] - List Length');
 
   CheckEquals('AI',FTypeMapping.Map.List[4].NodeName,'[4] - NodeName');
   Check(Assigned(FTypeMapping.Map.List[4].Member),'[4] - Member');
   CheckEquals('AI',FTypeMapping.Map.List[4].Member.Name,'[4] - Member.Name');
   Check(FTypeMapping.Map.List[4].NodeType = TMemberNodeType.ntElement,'[4] - NodeType');
-  Check(FTypeMapping.Map.List[4].ListType = TMemberListType.ltArray,'[4] - ListType');
   CheckEquals(0,Length(FTypeMapping.Map.List[4].List),'[4] - List Length');
 
   CheckEquals('ARec',FTypeMapping.Map.List[5].NodeName,'[5] - NodeName');
   Check(Assigned(FTypeMapping.Map.List[5].Member),'[5] - Member');
   CheckEquals('ARec',FTypeMapping.Map.List[5].Member.Name,'[5] - Member.Name');
   Check(FTypeMapping.Map.List[5].NodeType = TMemberNodeType.ntElement,'[5] - NodeType');
-  Check(FTypeMapping.Map.List[5].ListType = TMemberListType.ltArray,'[5] - ListType');
   CheckEquals(6,Length(FTypeMapping.Map.List[5].List),'[5] - List Length');
 
   CheckEquals('R',FTypeMapping.Map.List[6].NodeName,'[6] - NodeName');
   Check(Assigned(FTypeMapping.Map.List[6].Member),'[6] - Member');
   CheckEquals('R',FTypeMapping.Map.List[6].Member.Name,'[6] - Member.Name');
   Check(FTypeMapping.Map.List[6].NodeType = TMemberNodeType.ntElement,'[6] - NodeType');
-  Check(FTypeMapping.Map.List[6].ListType = TMemberListType.ltNone,'[6] - ListType');
   CheckEquals(6,Length(FTypeMapping.Map.List[6].List),'[6] - List Length');
 
   CheckEquals('Foo',FTypeMapping.Map.List[7].NodeName,'[7] - NodeName');
   Check(Assigned(FTypeMapping.Map.List[7].Member),'[7] - Member');
   CheckEquals('Foo',FTypeMapping.Map.List[7].Member.Name,'[7] - Member.Name');
   Check(FTypeMapping.Map.List[7].NodeType = TMemberNodeType.ntElement,'[7] - NodeType');
-  Check(FTypeMapping.Map.List[7].ListType = TMemberListType.ltNone,'[7] - ListType');
   CheckEquals(0,Length(FTypeMapping.Map.List[7].List),'[7] - List Length');
 
   CheckEquals('Bar',FTypeMapping.Map.List[8].NodeName,'[8] - NodeName');
   Check(Assigned(FTypeMapping.Map.List[8].Member),'[8] - Member');
   CheckEquals('Bar',FTypeMapping.Map.List[8].Member.Name,'[8] - Member.Name');
   Check(FTypeMapping.Map.List[8].NodeType = TMemberNodeType.ntElement,'[8] - NodeType');
-  Check(FTypeMapping.Map.List[8].ListType = TMemberListType.ltNone,'[8] - ListType');
   CheckEquals(0,Length(FTypeMapping.Map.List[8].List),'[8] - List Length');
   aContext.Free;
 end;
