@@ -72,7 +72,6 @@ type
     procedure TearDown; override;
   published
     procedure TestPopulate;
-    procedure TestPopulate1;
   end;
   // Test methods for class TXmlCustomTypeSerializer
 
@@ -84,8 +83,13 @@ type
   published
     procedure TestSerialize;
     procedure TestSerialize2;
+    procedure TestSerialize3;
+    procedure TestSerialize4;
+
     procedure TestDeserialize;
     procedure TestDeserialize2;
+    procedure TestDeserialize3;
+
 
   end;
 
@@ -169,15 +173,6 @@ begin
   aContext.Free;
 end;
 
-procedure TestTTypeMapping.TestPopulate1;
-var
-  aRttiType: TRttiType;
-  aContext: TRttiContext;
-begin
-  // TODO: Setup method call parameters
-  FTypeMapping.Populate(aContext, aRttiType);
-  // TODO: Validate method results
-end;
 
 
 { TestTXmlCustomTypeSerializer }
@@ -199,7 +194,7 @@ begin
 
   s.Serialize(Doc,t);
 
-  Doc.SaveToFile('C:\test.xml');
+//  Doc.SaveToFile('C:\test.xml');
 
   v := s.Deserialize(Doc);
   CheckFalse(v.IsEmpty,'Empty?');
@@ -246,7 +241,7 @@ begin
 
   s.Serialize(Doc,t);
 
-  Doc.SaveToFile('C:\test.xml');
+//  Doc.SaveToFile('C:\test.xml');
 
   v := s.Deserialize(Doc);
   CheckFalse(v.IsEmpty,'Empty?');
@@ -268,6 +263,30 @@ begin
 end;
 
 
+procedure TestTXmlCustomTypeSerializer.TestDeserialize3;
+var
+  s : TXmlTypeSerializer;
+  v : TValue;
+  t,tc : TxmlTest;
+  Doc : TXMLDocument;
+  DummyOwner :  TComponent;
+begin
+  s := TXmlTypeSerializer.Create(TypeInfo(Integer));
+  DummyOwner :=  TComponent.Create(nil);
+  Doc := TXMLDocument.Create(DummyOwner);
+
+  s.Serialize(Doc,1234);
+
+//  Doc.SaveToFile('C:\test.xml');
+
+  v := s.Deserialize(Doc);
+  CheckTrue(V.IsOrdinal,'isOrdinal?');
+  CheckEquals(1234,v.AsOrdinal);
+
+  Doc.Free;
+  DummyOwner.Free;
+end;
+
 procedure TestTXmlCustomTypeSerializer.TestSerialize;
 var
   s : TXmlTypeSerializer;
@@ -285,7 +304,7 @@ begin
 
   s.Serialize(Doc,t);
 
-  Doc.SaveToFile('C:\test.xml');
+//  Doc.SaveToFile('C:\test.xml');
 
   Doc.Free;
   DummyOwner.Free;
@@ -313,11 +332,49 @@ begin
 
   s.Serialize(Doc,t);
 
-  Doc.SaveToFile('C:\test.xml');
+//  Doc.SaveToFile('C:\test.xml');
 
   Doc.Free;
   DummyOwner.Free;
   t.Free;
+end;
+
+procedure TestTXmlCustomTypeSerializer.TestSerialize3;
+var
+  s : TXmlTypeSerializer;
+  Doc : TXMLDocument;
+  DummyOwner :  TComponent;
+begin
+  s := TXmlTypeSerializer.Create(TypeInfo(Integer));
+  DummyOwner :=  TComponent.Create(nil);
+  Doc := TXMLDocument.Create(DummyOwner);
+
+
+  s.Serialize(Doc,1);
+
+//  Doc.SaveToFile('C:\test.xml');
+
+  Doc.Free;
+  DummyOwner.Free;
+end;
+
+procedure TestTXmlCustomTypeSerializer.TestSerialize4;
+var
+  s : TXmlTypeSerializer;
+  Doc : TXMLDocument;
+  DummyOwner :  TComponent;
+begin
+  s := TXmlTypeSerializer.Create(TypeInfo(String));
+  DummyOwner :=  TComponent.Create(nil);
+  Doc := TXMLDocument.Create(DummyOwner);
+
+
+  s.Serialize(Doc,'StringWith<>//asdf !-- Characters in it</>');
+
+//  Doc.SaveToFile('C:\test.xml');
+
+  Doc.Free;
+  DummyOwner.Free;
 end;
 
 initialization
