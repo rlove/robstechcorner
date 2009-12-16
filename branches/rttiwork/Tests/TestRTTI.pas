@@ -2,7 +2,7 @@ unit TestRTTI;
 
 interface
 uses
-  TestFramework, TypInfo, Classes, RTTI,  SysUtils;
+  TestFramework, TypInfo, Classes, RTTI, RttiUtils, SysUtils,Generics.Collections;
 type
   // let everything be visible for these tests.
   {$RTTI EXPLICIT
@@ -121,6 +121,8 @@ type
 
     procedure TestSetGetPropValues;
 
+    procedure TestInvokeTListIntEnum;
+
   end;
 
 implementation
@@ -161,6 +163,83 @@ begin
  v.ExtractRawData(@r);
  CheckEquals(3947,r.MsgID);
  c.Free;
+end;
+
+procedure TRttiTestCase.TestInvokeTListIntEnum;
+var
+ L : TList<Integer>;
+ L2 : TLIst<Integer>;
+ C : TRttiContext;
+ T : TRttiType;
+ LV : TValue;
+
+ lEnumMethod : TRttiMethod;
+ lType : TRttiType;
+ lEnumerator : TValue;
+ lEnumType : TRttiType;
+ lMoveNextMethod : TRttiMethod;
+ lCurrentProp : TRttiProperty;
+ ValuePtr : Pointer;
+
+begin
+ L := TList<Integer>.Create;
+// L2 := TList<Integer>.Create;
+ try
+ L.Add(1);
+ L.Add(2);
+ C := TRttiContext.Create;
+{$REGION 'BLAH'}
+// T :=  C.GetType(L.ClassInfo);
+// lEnumerator := T.GetMethod('GetEnumerator').Invoke(L,[]);
+//
+// lEnumType :=  C.GetType(lEnumerator.TypeInfo);
+// lMoveNextMethod := lEnumType.GetMethod('MoveNext');
+// lCurrentProp := lEnumType.GetProperty('Current');
+//
+// Check(Assigned(LMoveNextMethod),'MoveNext method not found');
+// Check(Assigned(lCurrentProp),'Current property not found');
+//
+// while lMoveNextMethod.Invoke(lEnumerator.AsObject,[]).asBoolean do
+// begin
+//   L2.Add(lCurrentProp.GetValue(lEnumerator.AsObject).AsOrdinal);
+// end;
+//
+// CheckEquals(L.Count,L2.Count);
+// CheckEquals(1,L2.Items[0]);
+// CheckEquals(2,L2.Items[1]);
+{$ENDREGION}
+
+ LV := L;
+// L2.Clear;
+
+ T :=  C.GetType(LV.TypeInfo);
+ lEnumMethod := T.GetMethod('GetEnumerator');
+ lEnumerator := lEnumMethod.Invoke(LV,[]);
+
+ lEnumType :=  C.GetType(lEnumerator.TypeInfo);
+ lMoveNextMethod := lEnumType.GetMethod('MoveNext');
+ lCurrentProp := lEnumType.GetProperty('Current');
+
+ Check(Assigned(LMoveNextMethod),'MoveNext method not found');
+ Check(Assigned(lCurrentProp),'Current property not found');
+
+// while lMoveNextMethod.Invoke(lEnumerator.AsObject,[]).asBoolean do
+// begin
+//   L2.Add(lCurrentProp.GetValue(lEnumerator.AsObject).AsOrdinal);
+// end;
+
+// CheckEquals(L.Count,L2.Count);
+// CheckEquals(1,L2.Items[0]);
+// CheckEquals(2,L2.Items[1]);
+
+
+ finally
+   L.Free;
+   L2.Free;
+ end;
+
+
+
 end;
 
 procedure TRttiTestCase.TestSetGetPropValues;

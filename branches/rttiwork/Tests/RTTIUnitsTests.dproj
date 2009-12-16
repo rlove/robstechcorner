@@ -50,7 +50,8 @@
 			<DCCReference Include="TestRTTI.pas"/>
 			<DCCReference Include="TestIniPersist.pas"/>
 			<DCCReference Include="Testxmlserial.pas"/>
-			<DCCReference Include="TestAbstractRTTI.pas"/>
+			<DCCReference Include="TestXmlSerialDotNet.pas"/>
+			<DCCReference Include="PrismTestHelper\PrismTestHelper\uSampleTest.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

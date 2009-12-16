@@ -87,10 +87,10 @@ type
   TEnumerableFactory = class (TEnumerable<TValue>)
   protected
      FValue : TValue;
-     function CreateRttiEnum(aValue : TValue): TRttiEnumerator;
      function DoGetEnumerator: TEnumerator<TValue>; override;
   public
      constructor Create(aValue : TValue);
+     function CreateRttiEnum(aValue : TValue): TRttiEnumerator; // visibilty for testing right now
      class function IsTypeSupported(aType : TRttiType): Boolean;
   end;
 
@@ -393,21 +393,23 @@ var
  lEnumerator : TValue;
  lMoveNext : TRttiMethod;
  lCurrent : TRttiProperty;
+ lType : TRttiType;
 begin
  lContext := TRttiContext.Create;
- lGetEnum := lContext.GetType(aValue.TypeInfo).GetMethod('GetEnumerator');
+ lType := lContext.GetType(aValue.TypeInfo);
+ lGetEnum := lType.GetMethod('GetEnumerator');
  if Not Assigned(lGetEnum) then
-    raise EEnumerableFactoryException.CreateFmt('No Enumerator Adapter avalable for Value Specified: %s',[FValue.TypeInfo.Name]);
+    raise EEnumerableFactoryException.CreateFmt('No Enumerator Adapter avalable for Value Specified: %s',[aValue.TypeInfo.Name]);
  lEnumerator := lGetEnum.Invoke(aValue,[]);
 
  lMoveNext := lContext.GetType(lEnumerator.TypeInfo).GetMethod('MoveNext');
  lCurrent := lContext.GetType(lEnumerator.TypeInfo).GetProperty('Current');
 
  if Not Assigned(lMoveNext) then
-    raise EEnumerableFactoryException.CreateFmt('GetEnumerator did not return a method named MoveNext',[FValue.TypeInfo.Name]);
+    raise EEnumerableFactoryException.CreateFmt('GetEnumerator did not return a method named MoveNext',[aValue.TypeInfo.Name]);
 
  if Not Assigned(lCurrent) then
-    raise EEnumerableFactoryException.CreateFmt('GetEnumerator did not return a property named Current',[FValue.TypeInfo.Name]);
+    raise EEnumerableFactoryException.CreateFmt('GetEnumerator did not return a property named Current',[aValue.TypeInfo.Name]);
 
  result := TRttiEnumerator.Create(lEnumerator.AsObject,lContext,lCurrent,lMoveNext);
 end;

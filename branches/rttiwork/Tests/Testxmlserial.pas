@@ -89,9 +89,9 @@ type
     procedure TestDeserialize;
     procedure TestDeserialize2;
     procedure TestDeserialize3;
-
-
   end;
+
+
 
 implementation
 
