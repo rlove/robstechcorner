@@ -349,7 +349,7 @@ begin
     if TEnumerableFactory.IsTypeSupported(aMember.MemberType) and TElementAddFactory.TypeSupported(aMember.MemberType.Handle) then
     begin
       result.isList := true;
-      MemberType := aCtx.GetType(TArrayElementAdd.GetAddType(aMember.MemberType.Handle));
+      MemberType := aCtx.GetType(TElementAddFactory.GetAddType(aMember.MemberType.Handle));
       if Result.NodeType = ntAttribute then
       begin
         raise EXmlSerializationError.CreateFmt(
@@ -615,7 +615,11 @@ begin
         end
         else
         begin // Not a structure Type, convert from String to Value
-          Result := TextToValue(Map.Member.MemberType, Node.Text);
+          if Assigned(Map.Member) then
+            ResultType := Map.Member.MemberType
+          else
+            ResultType := FRootType;
+          Result := TextToValue(ResultType, Node.Text);
         end;
       end;
   end;
