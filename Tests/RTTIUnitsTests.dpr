@@ -22,7 +22,8 @@ uses
   TestRTTI in 'TestRTTI.pas',
   TestIniPersist in 'TestIniPersist.pas',
   Testxmlserial in 'Testxmlserial.pas',
-  TestAbstractRTTI in 'TestAbstractRTTI.pas';
+  TestXmlSerialDotNet in 'TestXmlSerialDotNet.pas',
+  uSampleTest in 'PrismTestHelper\PrismTestHelper\uSampleTest.pas';
 
 {R *.RES}
 

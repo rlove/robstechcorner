@@ -1,4 +1,8 @@
 unit AbstractRTTI;
+// Robert Love:
+// Decided not to do this, but the code will remain in the branch in case someone
+// wants it.
+
 // Allows Developer to create custom type mappings, so that things
 // that use this, such as Xml Serialization can take type and
 // represent them in a different way and the Xml Serialization
