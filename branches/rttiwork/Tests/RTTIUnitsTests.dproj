@@ -48,10 +48,13 @@
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
 			<DCCReference Include="TestRTTI.pas"/>
-			<DCCReference Include="TestIniPersist.pas"/>
 			<DCCReference Include="Testxmlserial.pas"/>
 			<DCCReference Include="TestXmlSerialDotNet.pas"/>
 			<DCCReference Include="PrismTestHelper\PrismTestHelper\uSampleTest.pas"/>
+			<DCCReference Include="..\RttiUtils.pas"/>
+			<DCCReference Include="..\xmlserial.pas"/>
+			<DCCReference Include="TestIniPersist.pas"/>
+			<DCCReference Include="..\IniPersist.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

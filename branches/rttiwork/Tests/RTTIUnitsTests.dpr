@@ -20,10 +20,13 @@ uses
   GUITestRunner,
   TextTestRunner,
   TestRTTI in 'TestRTTI.pas',
-  TestIniPersist in 'TestIniPersist.pas',
   Testxmlserial in 'Testxmlserial.pas',
   TestXmlSerialDotNet in 'TestXmlSerialDotNet.pas',
-  uSampleTest in 'PrismTestHelper\PrismTestHelper\uSampleTest.pas';
+  uSampleTest in 'PrismTestHelper\PrismTestHelper\uSampleTest.pas',
+  RttiUtils in '..\RttiUtils.pas',
+  xmlserial in '..\xmlserial.pas',
+  TestIniPersist in 'TestIniPersist.pas',
+  IniPersist in '..\IniPersist.pas';
 
 {R *.RES}
 
