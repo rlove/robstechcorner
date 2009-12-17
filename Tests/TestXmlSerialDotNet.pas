@@ -68,13 +68,14 @@ begin
 
 
   tc := s.Deserialize(Doc);
-  CheckEquals(t.Value1,tc.Value1);
-  CheckEquals(t.Value2,tc.Value2);
-  CheckEquals(t.Value3,tc.Value3);
-  CheckEquals(t.Value4,tc.Value4);
-  CheckEquals(t.Value5,tc.Value5);
-  CheckEquals(t.Value6.Count,tc.Value6.Count);
-  CheckEquals(t.Value6.Items[1],tc.Value6.Items[1]);
+  CheckEquals(t.Value1,tc.Value1,'Value1');
+  CheckEquals(t.Value2,tc.Value2,'Value2');
+  CheckEquals(t.Value3,tc.Value3,'Value3');
+  CheckEquals(t.Value4,tc.Value4,'Value4');
+  CheckEquals(t.Value5,tc.Value5,'Value5');
+  Check(Assigned(tc.Value6),'Assigned(tc.Value6)');
+  CheckEquals(t.Value6.Count,tc.Value6.Count,'Value6.Count');
+  CheckEquals(t.Value6.Items[1],tc.Value6.Items[1],'Value6.Items[1]');
 
 
 

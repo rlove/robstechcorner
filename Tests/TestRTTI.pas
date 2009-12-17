@@ -183,34 +183,34 @@ var
 
 begin
  L := TList<Integer>.Create;
-// L2 := TList<Integer>.Create;
+ L2 := TList<Integer>.Create;
  try
  L.Add(1);
  L.Add(2);
  C := TRttiContext.Create;
-{$REGION 'BLAH'}
-// T :=  C.GetType(L.ClassInfo);
-// lEnumerator := T.GetMethod('GetEnumerator').Invoke(L,[]);
-//
-// lEnumType :=  C.GetType(lEnumerator.TypeInfo);
-// lMoveNextMethod := lEnumType.GetMethod('MoveNext');
-// lCurrentProp := lEnumType.GetProperty('Current');
-//
-// Check(Assigned(LMoveNextMethod),'MoveNext method not found');
-// Check(Assigned(lCurrentProp),'Current property not found');
-//
-// while lMoveNextMethod.Invoke(lEnumerator.AsObject,[]).asBoolean do
-// begin
-//   L2.Add(lCurrentProp.GetValue(lEnumerator.AsObject).AsOrdinal);
-// end;
-//
-// CheckEquals(L.Count,L2.Count);
-// CheckEquals(1,L2.Items[0]);
-// CheckEquals(2,L2.Items[1]);
+{$REGION 'test1'}
+ T :=  C.GetType(L.ClassInfo);
+ lEnumerator := T.GetMethod('GetEnumerator').Invoke(L,[]);
+
+ lEnumType :=  C.GetType(lEnumerator.TypeInfo);
+ lMoveNextMethod := lEnumType.GetMethod('MoveNext');
+ lCurrentProp := lEnumType.GetProperty('Current');
+
+ Check(Assigned(LMoveNextMethod),'MoveNext method not found');
+ Check(Assigned(lCurrentProp),'Current property not found');
+
+ while lMoveNextMethod.Invoke(lEnumerator.AsObject,[]).asBoolean do
+ begin
+   L2.Add(lCurrentProp.GetValue(lEnumerator.AsObject).AsOrdinal);
+ end;
+
+ CheckEquals(L.Count,L2.Count);
+ CheckEquals(1,L2.Items[0]);
+ CheckEquals(2,L2.Items[1]);
 {$ENDREGION}
 
  LV := L;
-// L2.Clear;
+ L2.Clear;
 
  T :=  C.GetType(LV.TypeInfo);
  lEnumMethod := T.GetMethod('GetEnumerator');
@@ -223,14 +223,14 @@ begin
  Check(Assigned(LMoveNextMethod),'MoveNext method not found');
  Check(Assigned(lCurrentProp),'Current property not found');
 
-// while lMoveNextMethod.Invoke(lEnumerator.AsObject,[]).asBoolean do
-// begin
-//   L2.Add(lCurrentProp.GetValue(lEnumerator.AsObject).AsOrdinal);
-// end;
-
-// CheckEquals(L.Count,L2.Count);
-// CheckEquals(1,L2.Items[0]);
-// CheckEquals(2,L2.Items[1]);
+ while lMoveNextMethod.Invoke(lEnumerator.AsObject,[]).asBoolean do
+ begin
+   L2.Add(lCurrentProp.GetValue(lEnumerator.AsObject).AsOrdinal);
+ end;
+//
+ CheckEquals(L.Count,L2.Count);
+ CheckEquals(1,L2.Items[0]);
+ CheckEquals(2,L2.Items[1]);
 
 
  finally
