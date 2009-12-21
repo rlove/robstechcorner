@@ -106,6 +106,7 @@ type
     procedure Add(aAddElement : TValue); virtual; abstract;
     procedure AddFinalize; virtual;  // Can't depend on the data to be added to FList until this called.
     property List : TValue read FList;
+    function AddType : pTypeInfo;
     constructor Create(aList : TValue); virtual;
     class function TypeSupported(aListType : pTypeInfo) : Boolean; virtual; abstract;
     class function GetAddType(aListType : pTypeInfo): pTypeInfo; virtual; abstract;
@@ -376,7 +377,7 @@ end;
 function TArrayEnumerator.DoMoveNext: Boolean;
 begin
   inc(FIndex);
-  result := (FIndex > FArray.GetArrayLength);
+  result := (FIndex < FArray.GetArrayLength);
 end;
 
 { TEnumerableFactory }
@@ -533,22 +534,24 @@ var
   Len : LongInt;
   I : Integer;
   lExistingArrayLen : Integer;
+  ValArray : Array of TValue;
 begin
-  // Create New array
-  TValue.Make(nil,FList.TypeInfo,lNewArray);
-  // Set it's size and have to resort to lower levels as we don't have something that will work with SetLength()
-  lNewArrayPtr := lNewArray.GetReferenceToRawData;
   lExistingArrayLen := FList.GetArrayLength;
-  Len := lExistingArrayLen + FTempList.Count;
-  DynArraySetLength(lNewArrayPtr,FList.TypeInfo,1,@Len);
-  // Copy Existing Values to New Array
+  SetLength(ValArray,lExistingArrayLen +  FTempList.Count);
   for I := 0 to lExistingArrayLen - 1 do
-     lNewArray.SetArrayElement(I,FList.GetArrayElement(I));
-  // Copy Added Values to New Array
-  for I := 0 to FTempList.Count -1 do
-    lNewArray.SetArrayElement(I + lExistingArrayLen,FTempList.Items[I]);
-  // Finally Replace old Array with New Array
-  FList := lNewArray;
+  begin
+        ValArray[I] := FList.GetArrayElement(I);
+  end;
+  for I := 0 to FTempList.Count - 1 do
+  begin
+    ValArray[I+lExistingArrayLen] := FTempList.Items[I];
+  end;
+  FList := TValue.FromArray(FList.TypeInfo,ValArray);
+end;
+
+function TElementAdd.AddType: pTypeInfo;
+begin
+  result := self.GetAddType(FList.TypeInfo);
 end;
 
 constructor TArrayElementAdd.Create(aList: TValue);

@@ -50,7 +50,7 @@ unit XmlSerial;
 // -Testing to see if this produces files compatable with .NET Xml Serialization
 // HINT: Don't Depend on the structure produced until this is complete!
 //
-// Version 0.4 
+// Version 0.4
 // -Better Error Handling, when unsupported types, etc... are found.
 //
 // Version 0.5 
@@ -173,8 +173,10 @@ type
 
   EXmlSerializationError = class(Exception);
 
-    TMemberNodeType = (ntNone, ntElement, ntAttribute);
-    TMemberNodeData = record NodeType: TMemberNodeType;
+  TMemberNodeType = (ntNone, ntElement, ntAttribute);
+
+  TMemberNodeData = record
+    NodeType: TMemberNodeType;
     NodeName: string;
   end;
 
@@ -184,38 +186,64 @@ const
   ValidMemberList : TMemberListTypeSet = [ltEnum,ltArray];
 
 type
+
+  TTypeNameMarshalling = class abstract(TObject)
+  protected
+  public
+    function TypeName(aType : TRttiType) : String; virtual; abstract;
+  end;
+
+  TXmlDotNetNameMarshalling = class (TTypeNameMarshalling)
+  private
+  protected
+    class var
+      CS : TCriticalSection;
+      Cache : TDictionary<string,string>;
+    class constructor ClassCreate;
+    class destructor ClassDestroy;
+  public
+    function TypeName(aType : TRttiType) : String; override;
+  end;
+
+
+
   TMemberMap = record
   public
     Member: TRttiMember;
     NodeName: string;
     NodeType: TMemberNodeType;
     isList : Boolean;
+    ListItemName : String;
     List: TArray<TMemberMap>;
-    class function XmlTypeName(aType : pTypeInfo) : String; static;
-    class function CreateMap(var aCtx: TRttiContext; aMember: TRttiMember)
+    class function CreateMap(var aCtx: TRttiContext; aMember: TRttiMember;NameMarshaler : TTypeNameMarshalling)
       : TMemberMap; static;
   end;
 
   TTypeMapping = class(TObject)
   public
     Map: TMemberMap;
-    function XmlSafeName(const Name : String) : String;
-    procedure Populate(var aContext: TRttiContext; aType: PTypeInfo); overload;
-    procedure Populate(var aContext: TRttiContext; aRttiType: TRttiType);
+    procedure Populate(var aContext: TRttiContext; aType: PTypeInfo;NameMarshaler : TTypeNameMarshalling); overload;
+    procedure Populate(var aContext: TRttiContext; aRttiType: TRttiType;NameMarshaler : TTypeNameMarshalling);
       overload;
   end;
+
+
+
+
 
   TXmlCustomTypeSerializer = class abstract(TObject)
   protected
     FMemberMap: TTypeMapping;
     FCtx: TRttiContext;
     FRootType: TRttiType;
-
+    FNameMarshal : TTypeNameMarshalling;
   protected
+    function CreateNameMarshaler : TTypeNameMarshalling; virtual;
     function CreateValue(aTypeInfo: PTypeInfo): TValue; virtual;
     procedure SerializeValue(const Value: TValue; const Map: TMemberMap;
       BaseNode: IXMLNode; Doc: TXmlDocument); virtual;
-    function DeSerializeValue(Node: IXMLNode; Map: TMemberMap): TValue; virtual;
+//    function DeSerializeValue(Node: IXMLNode; Map: TMemberMap): TValue; overload; virtual;
+    function DeSerializeValue(Node: IXMLNode; MapType: TRttiType;Map : TMemberMap): TValue; overload; virtual;
     function ValueToString(const Value: TValue): string; virtual;
     function TextToValue(aType: TRttiType; const aText: string): TValue;
 
@@ -245,23 +273,7 @@ type
 
   TCustomAttributeClass = class of TCustomAttribute;
 
-  TTypeNameMarshling = class abstract(TObject)
-  protected
-  public
-    function TypeName(aType : TRttiType) : String; virtual; abstract;
-  end;
 
-  TXmlDotNetNameMarshling = class (TTypeNameMarshling)
-  private
-  protected
-    class var
-      CS : TCriticalSection;
-      Cache : TDictionary<string,string>;
-    class constructor ClassCreate;
-    class destructor ClassDestroy;
-  public
-    function TypeName(aType : TRttiType) : String; override;
-  end;
 
 
 
@@ -296,7 +308,7 @@ end;
 { TMemberMap }
 
 class function TMemberMap.CreateMap(var aCtx: TRttiContext;
-  aMember: TRttiMember): TMemberMap;
+  aMember: TRttiMember;NameMarshaler : TTypeNameMarshalling): TMemberMap;
 var
   Attr: TCustomAttribute;
   Dupe: Integer;
@@ -356,9 +368,10 @@ begin
            'TXmlAttributeAttribute not supported for this member: %s.%s',
              [aMember.Parent.QualifiedName, aMember.name]);
       end;
+      result.ListItemName := NameMarshaler.TypeName(MemberType);
       TypMp := TTypeMapping.create;
       try
-        TypMp.Populate(aCtx, MemberType);
+        TypMp.Populate(aCtx, MemberType,NameMarshaler);
         Result.List := TypMp.Map.List;
       finally
         TypMp.Free;
@@ -379,7 +392,7 @@ begin
         begin
           TypMp := TTypeMapping.create;
           try
-            TypMp.Populate(aCtx, MemberType);
+            TypMp.Populate(aCtx, MemberType,NameMarshaler);
             Result.List := TypMp.Map.List;
           finally
             TypMp.Free;
@@ -395,13 +408,13 @@ end;
 
 { TMemberMapList }
 
-procedure TTypeMapping.Populate(var aContext: TRttiContext; aType: PTypeInfo);
+procedure TTypeMapping.Populate(var aContext: TRttiContext; aType: PTypeInfo;NameMarshaler : TTypeNameMarshalling);
 begin
-  Populate(aContext, aContext.GetType(aType));
+  Populate(aContext, aContext.GetType(aType),NameMarshaler);
 end;
 
 procedure TTypeMapping.Populate(var aContext: TRttiContext;
-  aRttiType: TRttiType);
+  aRttiType: TRttiType;NameMarshaler : TTypeNameMarshalling);
 var
   Prop: TRttiProperty;
   Props: TArray<TRttiProperty>;
@@ -424,7 +437,7 @@ begin
   end
   else
   begin
-    Map.NodeName := XmlSafeName(aRttiType.name);
+    Map.NodeName := NameMarshaler.TypeName(aRttiType);
   end;
 
   if TEnumerableFactory.IsTypeSupported(aRttiType) and TElementAddFactory.TypeSupported(aRttiType.Handle) then
@@ -433,7 +446,7 @@ begin
 
     TypMp := TTypeMapping.create;
     try
-      TypMp.Populate(aContext, aContext.GetType(TElementAddFactory.GetAddType(aRttiType.Handle)));
+      TypMp.Populate(aContext, aContext.GetType(TElementAddFactory.GetAddType(aRttiType.Handle)),NameMarshaler);
       Map.List := TypMp.Map.List;
     finally
       TypMp.Free;
@@ -451,7 +464,7 @@ begin
     begin
       if Field.Visibility in [mvPublic, mvPublished] then
       begin
-        MemberMap := TMemberMap.CreateMap(aContext, Field);
+        MemberMap := TMemberMap.CreateMap(aContext, Field,NameMarshaler);
         if MemberMap.NodeType <> ntNone then
         begin
           Map.List[Cnt] := MemberMap;
@@ -464,7 +477,7 @@ begin
     begin
       if Prop.Visibility in [mvPublic, mvPublished] then
       begin
-        MemberMap := TMemberMap.CreateMap(aContext, Prop);
+        MemberMap := TMemberMap.CreateMap(aContext, Prop,NameMarshaler);
         if MemberMap.NodeType <> ntNone then
         begin
           Map.List[Cnt] := MemberMap;
@@ -478,46 +491,21 @@ begin
   end;
 end;
 
-function TTypeMapping.XmlSafeName(const Name: String): String;
-begin
-//TODO: Figure out how .NET does it to duplicate
-// I think in .NET the it might be done with the System.Xml.XmlConvert class
-
-// This is a temp fix to get Generic Types TList<ASDF> to work
- result := StringReplace(Name,'<','.',[rfReplaceAll]);
- result := StringReplace(result,'>','.',[rfReplaceAll]);
-end;
-
-class function TMemberMap.XmlTypeName(aType: pTypeInfo): String;
-begin
-// I suspect later in performance tuning we will find out this function
-// could be optimized and maybe a cached sorted list of results may be in
-// order.  But I think getting the functionality written correctly is more important
-// right now.
-
-case aType.Kind of
-  tkLString, tkWString,tkString, tkUString : result := 'string';
-  tkFloat : begin
-
-            end;
-  else result := aType.Name;
-end;
-//     tkUnknown, tkInteger, tkChar, tkEnumeration, tkFloat,
-//    tkString, tkSet, tkClass, tkMethod, tkWChar, tkLString, tkWString,
-//    tkVariant, tkArray, tkRecord, tkInterface, tkInt64, tkDynArray, tkUString,
-//    tkClassRef, tkPointer, tkProcedure);
-
-
-end;
 
 { TXmlCustomTypeSerializer }
 
 constructor TXmlCustomTypeSerializer.create(aType: PTypeInfo);
 begin
+  FNameMarshal := CreateNameMarshaler;
   FMemberMap := TTypeMapping.create;
   FCtx := TRttiContext.create;
-  FMemberMap.Populate(FCtx, aType);
+  FMemberMap.Populate(FCtx, aType,FNameMarshal);
   FRootType := FCtx.GetType(aType);
+end;
+
+function TXmlCustomTypeSerializer.CreateNameMarshaler: TTypeNameMarshalling;
+begin
+  result := TXmlDotNetNameMarshalling.Create;
 end;
 
 function TXmlCustomTypeSerializer.CreateValue(aTypeInfo: PTypeInfo): TValue;
@@ -533,6 +521,7 @@ begin
   else if rtType is TRttiInstanceType then
   begin
     // TODO: Support for Event to allow creation of classes with parameters on contrcutors
+    // Not going to do this right now, not required
     Result := TRttiInstanceType(rtType).MetaclassType.create;
   end
   else
@@ -549,85 +538,185 @@ begin
     raise EXmlSerializationError.create(
       'Nothing to  deserialize the document is empty.');
 
-  Result := DeSerializeValue(Doc.Node.ChildNodes.First, FMemberMap.Map);
+  Result := DeSerializeValue(Doc.Node.ChildNodes.First, FRootType, FMemberMap.Map);
 
 end;
 
-function TXmlCustomTypeSerializer.DeSerializeValue
-  (Node: IXMLNode; Map: TMemberMap): TValue;
+function TXmlCustomTypeSerializer.DeSerializeValue(Node: IXMLNode;
+  MapType: TRttiType;Map : TMemberMap): TValue;
 var
   Children: IXMLNodeList;
   Child: IXMLNode;
   MapItem: TMemberMap;
   ChildValue: TValue;
-  ResultType: TRttiType;
-
+  I : Integer;
+  ListValue : TValue;
+  lAdd : TElementAdd;
+  ListMapItem : TMemberMap;
 begin
-  if Map.isList then
-  begin
+ if MapType.IsInstance then
+ begin
+    Result := MapType.AsInstance.MetaclassType.create;
+ end
+ else
+ begin
+    // Create an Empty Record, Value Type, etc....
+    TValue.Make(nil, MapType.Handle, Result);
+ end;
+ // structure type with Mapped Members, and it's not a list type
+ if (MapType is TRttiStructuredType) and (Length(Map.List) > 0) and (Not Map.isList) then
+ begin
     Children := Node.ChildNodes;
-    Result := TValue.Empty; // TODO
-  end
-  else
-  begin
-
+    for MapItem in Map.List do
+    begin
+      case MapItem.NodeType of
+        ntElement: Child := Children.FindNode(MapItem.NodeName);
+        ntAttribute: begin
+                       if Node.HasAttribute(MapItem.NodeName) then
+                         Child := Node.AttributeNodes.FindNode(MapItem.NodeName)
+                       else
+                         Child :=nil;
+                      end;
+      end; { Case }
+      if Assigned(Child) then
       begin
-        if (Length(Map.List) > 0) then // Must be Structured Type
-        begin
-          if Assigned(Map.Member) then
-            ResultType := Map.Member.MemberType
-          else
-            ResultType := FRootType;
-
-          if not(ResultType is TRttiStructuredType) then
-            raise EXmlSerializationError.create(
-              'Expecting a structured type to Deserialize');
-          // Create Result TValue
-          if ResultType.IsInstance then
-          begin
-            Result := ResultType.AsInstance.MetaclassType.create;
-          end
-          else
-          begin
-            TValue.Make(nil, ResultType.Handle, Result);
-          end;
-
-          Children := Node.ChildNodes;
-          for MapItem in Map.List do
-          begin
-            case MapItem.NodeType of
-              ntElement: Child := Children.FindNode(MapItem.NodeName);
-              ntAttribute: begin
-                             if Node.HasAttribute(MapItem.NodeName) then
-                               Child := Node.AttributeNodes.FindNode(MapItem.NodeName)
-                             else
-                               Child :=nil;
-                            end;
-            end; { Case }
-            if Assigned(Child) then
-            begin
-              ChildValue := DeSerializeValue(Child, MapItem);
-              if not ChildValue.isEmpty then
-                MapItem.Member.SetValue(Result, ChildValue);
-            end;
-          end;
-
-        end
-        else
-        begin // Not a structure Type, convert from String to Value
-          if Assigned(Map.Member) then
-            ResultType := Map.Member.MemberType
-          else
-            ResultType := FRootType;
-          Result := TextToValue(ResultType, Node.Text);
-        end;
+        ChildValue := DeSerializeValue(Child, MapItem.Member.MemberType, MapItem);
+        if not ChildValue.isEmpty then
+          MapItem.Member.SetValue(Result, ChildValue);
       end;
+    end;
+ end
+ else if Map.isList then
+ begin
+     Children := Node.ChildNodes;
+    // Create Correct Element Add Factory
+    lAdd := TElementAddFactory.CreateElementAdd(Result);
+    // Loop through items to add.
+    for I := 0 to Children.Count - 1 do
+    begin
+      Child := Children.Nodes[I];
+      ListMapItem := Map;
+      ListMapItem.isList := false;
+      ListMapItem.NodeType := ntElement;
+      ListValue := DeSerializeValue(Child,FCtx.GetType(lAdd.AddType),ListMapItem);
+      lAdd.Add(ListValue);
+    end;
+    lAdd.AddFinalize;
+    result := lAdd.List;
+ end
+ else // Not a structure Type or List, convert from String to Value
+ begin
+      Result := TextToValue(MapType, Node.Text);
   end;
+
 end;
+
+//function TXmlCustomTypeSerializer.DeSerializeValue
+//  (Node: IXMLNode; Map: TMemberMap): TValue;
+//var
+//  Children: IXMLNodeList;
+//  Child: IXMLNode;
+//  MapItem: TMemberMap;
+//  ListMapItem : TMemberMap;
+//  ChildValue: TValue;
+//  ResultType: TRttiType;
+//  I : Integer;
+//  ListValue : TValue;
+//  lAdd : TElementAdd;
+//
+//begin
+//// Riddled with duplicated code, need to rethink and refactor
+//  if Map.isList then
+//  begin
+//    Children := Node.ChildNodes;
+//    if Assigned(Map.Member) then
+//        ResultType := Map.Member.MemberType
+//    else
+//        ResultType := FRootType;
+//
+//    // Create Result TValue
+//    if ResultType.IsInstance then
+//    begin
+//      Result := ResultType.AsInstance.MetaclassType.create;
+//    end
+//    else
+//    begin
+//      TValue.Make(nil, ResultType.Handle, Result);
+//    end;
+//
+//    // Create Correct Element Add Factory
+//    lAdd := TElementAddFactory.CreateElementAdd(Result);
+//    // Loop through items to add.
+//    for I := 0 to Children.Count - 1 do
+//    begin
+//      Child := Children.Nodes[I];
+//      TextToValue(ResultType,Child.Text);
+//      ListValue := DeserializeValue(Node,Map);
+//      lAdd.Add(ListValue);
+//    end;
+//    lAdd.AddFinalize;
+//  end
+//  else
+//  begin
+//
+//      begin
+//        if  (Length(Map.List) > 0) then // Must be Structured Type
+//        begin
+//          if Assigned(Map.Member) then
+//            ResultType := Map.Member.MemberType
+//          else
+//            ResultType := FRootType;
+//
+//          if not(ResultType is TRttiStructuredType) then
+//            raise EXmlSerializationError.create(
+//              'Expecting a structured type to Deserialize');
+//          // Create Result TValue
+//          if ResultType.IsInstance then
+//          begin
+//            Result := ResultType.AsInstance.MetaclassType.create;
+//          end
+//          else
+//          begin
+//            TValue.Make(nil, ResultType.Handle, Result);
+//          end;
+//
+//          Children := Node.ChildNodes;
+//          for MapItem in Map.List do
+//          begin
+//            case MapItem.NodeType of
+//              ntElement: Child := Children.FindNode(MapItem.NodeName);
+//              ntAttribute: begin
+//                             if Node.HasAttribute(MapItem.NodeName) then
+//                               Child := Node.AttributeNodes.FindNode(MapItem.NodeName)
+//                             else
+//                               Child :=nil;
+//                            end;
+//            end; { Case }
+//            if Assigned(Child) then
+//            begin
+//              ChildValue := DeSerializeValue(Child, MapItem);
+//              if not ChildValue.isEmpty then
+//                MapItem.Member.SetValue(Result, ChildValue);
+//            end;
+//          end;
+//
+//        end
+//        else
+//        begin // Not a structure Type, convert from String to Value
+//          if Assigned(Map.Member) then
+//            ResultType := Map.Member.MemberType
+//          else
+//            ResultType := FRootType;
+//          Result := TextToValue(ResultType, Node.Text);
+//        end;
+//      end;
+//  end;
+//end;
 
 destructor TXmlCustomTypeSerializer.Destroy;
 begin
   FMemberMap.Free;
+  FNameMarshal.Free;
   inherited;
 end;
 
@@ -699,15 +788,15 @@ begin
   if Map.isList then
   begin
     EnumNodeData := Map;
-    EnumNodeData.NodeName := 'item';
+    EnumNodeData.NodeName := Map.ListItemName;
     EnumNodeData.isList := false;
-  
+
     EnumFactory := TEnumerableFactory.Create(Value);
     Enumerator := EnumFactory.GetEnumerator;
     while Enumerator.MoveNext do
     begin
       CurrentValue := Enumerator.Current;
-      EnumNode := NewNode.AddChild(TElementAddFactory.GetAddType(Value.TypeInfo).Name , '');
+//      EnumNode := NewNode.AddChild(TElementAddFactory.GetAddType(Value.TypeInfo).Name , '');
       SerializeValue(CurrentValue, EnumNodeData, NewNode, Doc);
     end;
   end;
@@ -876,9 +965,9 @@ begin
 end;
 
 
-{ TXmlDotNetNameMarshling }
+{ TXmlDotNetNameMarshalling }
 
-class constructor TXmlDotNetNameMarshling.ClassCreate;
+class constructor TXmlDotNetNameMarshalling.ClassCreate;
 begin
   Cache := TDictionary<string,string>.Create;
   // Standard Types and how .NET returns them,
@@ -906,13 +995,13 @@ begin
   CS := TCriticalSection.Create;
 end;
 
-class destructor TXmlDotNetNameMarshling.ClassDestroy;
+class destructor TXmlDotNetNameMarshalling.ClassDestroy;
 begin
   Cache.Free;
   CS.Free;
 end;
 
-function TXmlDotNetNameMarshling.TypeName(aType: TRttiType): String;
+function TXmlDotNetNameMarshalling.TypeName(aType: TRttiType): String;
 var
  token : String;
  Idx : Integer;
