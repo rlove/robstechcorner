@@ -110,9 +110,11 @@ procedure TestTTypeMapping.TestPopulate;
 var
   aType: PTypeInfo;
   aContext: TRttiContext;
+  lNameMarshler : TXmlDotNetNameMarshalling;
 begin
   aContext := TRttiContext.Create;
-  FTypeMapping.Populate(aContext, TxmlTest.ClassInfo);
+  lNameMarshler := TXmlDotNetNameMarshalling.Create;
+  FTypeMapping.Populate(aContext, TxmlTest.ClassInfo,lNameMarshler);
   CheckEquals('TxmlTest',FTypeMapping.Map.NodeName,'1');
   Check(FTypeMapping.Map.NodeType = TMemberNodeType.ntElement,'2');
   CheckEquals(9,Length(FTypeMapping.Map.List),'4');
@@ -171,6 +173,8 @@ begin
   Check(FTypeMapping.Map.List[8].NodeType = TMemberNodeType.ntElement,'[8] - NodeType');
   CheckEquals(0,Length(FTypeMapping.Map.List[8].List),'[8] - List Length');
   aContext.Free;
+
+  lNameMarshler.Free;
 end;
 
 
@@ -241,7 +245,7 @@ begin
 
   s.Serialize(Doc,t);
 
-//  Doc.SaveToFile('C:\test.xml');
+  Doc.SaveToFile('C:\test.xml');
 
   v := s.Deserialize(Doc);
   CheckFalse(v.IsEmpty,'Empty?');
@@ -254,6 +258,10 @@ begin
   CheckEquals(t.r.i,tc.r.I);
   CheckEquals(ord(t.r.E),ord(tc.r.e));
   CheckEquals(ord(t.E),ord(tc.e));
+  CheckEquals(length(t.AI),length(tc.AI),'length(tc.ai)');
+  CheckEquals(t.AI[0],t.AI[0],'AI[0]');
+  CheckEquals(t.AI[1],t.AI[1],'AI[1]');
+  CheckEquals(t.AI[2],t.AI[2],'AI[2]');
 
   Doc.Free;
   DummyOwner.Free;
