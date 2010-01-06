@@ -66,6 +66,8 @@ begin
 
   Doc.SaveToFile(testFile);
 
+  //TODO: Call DotNet Serialization Test
+
 
   tc := s.Deserialize(Doc);
   CheckEquals(t.Value1,tc.Value1,'Value1');
