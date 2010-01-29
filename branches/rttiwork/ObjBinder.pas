@@ -217,6 +217,7 @@ procedure TObjectBinder.TBinding.Save(Instance: TObject);
 var
   Value : TValue;
 begin
+  if ReadOnly then Exit;  
   // Get Current Value of DestObj
   Value := DestMember.GetValue(DestObj);
   // Convert from one TValue format to desired TValue Format
