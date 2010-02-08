@@ -1,0 +1,72 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{3230B2C9-D581-4706-9BCB-B3212594D789}</ProjectGuid>
+		</PropertyGroup>
+		<ItemGroup>
+			<Projects Include="Source\BindingR.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Source\BindingD.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="ExampleModel\ExampleModel.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="TestApp\TestApp.dproj">
+				<Dependencies/>
+			</Projects>
+		</ItemGroup>
+		<ProjectExtensions>
+			<Borland.Personality>Default.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Default.Personality/>
+			</BorlandProject>
+		</ProjectExtensions>
+		<Target Name="BindingR">
+			<MSBuild Projects="Source\BindingR.dproj"/>
+		</Target>
+		<Target Name="BindingR:Clean">
+			<MSBuild Targets="Clean" Projects="Source\BindingR.dproj"/>
+		</Target>
+		<Target Name="BindingR:Make">
+			<MSBuild Targets="Make" Projects="Source\BindingR.dproj"/>
+		</Target>
+		<Target Name="BindingD">
+			<MSBuild Projects="Source\BindingD.dproj"/>
+		</Target>
+		<Target Name="BindingD:Clean">
+			<MSBuild Targets="Clean" Projects="Source\BindingD.dproj"/>
+		</Target>
+		<Target Name="BindingD:Make">
+			<MSBuild Targets="Make" Projects="Source\BindingD.dproj"/>
+		</Target>
+		<Target Name="ExampleModel">
+			<MSBuild Projects="ExampleModel\ExampleModel.dproj"/>
+		</Target>
+		<Target Name="ExampleModel:Clean">
+			<MSBuild Targets="Clean" Projects="ExampleModel\ExampleModel.dproj"/>
+		</Target>
+		<Target Name="ExampleModel:Make">
+			<MSBuild Targets="Make" Projects="ExampleModel\ExampleModel.dproj"/>
+		</Target>
+		<Target Name="TestApp">
+			<MSBuild Projects="TestApp\TestApp.dproj"/>
+		</Target>
+		<Target Name="TestApp:Clean">
+			<MSBuild Targets="Clean" Projects="TestApp\TestApp.dproj"/>
+		</Target>
+		<Target Name="TestApp:Make">
+			<MSBuild Targets="Make" Projects="TestApp\TestApp.dproj"/>
+		</Target>
+		<Target Name="Build">
+			<CallTarget Targets="BindingR;BindingD;ExampleModel;TestApp"/>
+		</Target>
+		<Target Name="Clean">
+			<CallTarget Targets="BindingR:Clean;BindingD:Clean;ExampleModel:Clean;TestApp:Clean"/>
+		</Target>
+		<Target Name="Make">
+			<CallTarget Targets="BindingR:Make;BindingD:Make;ExampleModel:Make;TestApp:Make"/>
+		</Target>
+		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+	</Project>
