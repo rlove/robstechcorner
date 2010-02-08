@@ -1,0 +1,48 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{3230B2C9-D581-4706-9BCB-B3212594D789}</ProjectGuid>
+		</PropertyGroup>
+		<ItemGroup>
+			<Projects Include="BindingR.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="BindingD.dproj">
+				<Dependencies/>
+			</Projects>
+		</ItemGroup>
+		<ProjectExtensions>
+			<Borland.Personality>Default.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Default.Personality/>
+			</BorlandProject>
+		</ProjectExtensions>
+		<Target Name="BindingR">
+			<MSBuild Projects="BindingR.dproj"/>
+		</Target>
+		<Target Name="BindingR:Clean">
+			<MSBuild Targets="Clean" Projects="BindingR.dproj"/>
+		</Target>
+		<Target Name="BindingR:Make">
+			<MSBuild Targets="Make" Projects="BindingR.dproj"/>
+		</Target>
+		<Target Name="BindingD">
+			<MSBuild Projects="BindingD.dproj"/>
+		</Target>
+		<Target Name="BindingD:Clean">
+			<MSBuild Targets="Clean" Projects="BindingD.dproj"/>
+		</Target>
+		<Target Name="BindingD:Make">
+			<MSBuild Targets="Make" Projects="BindingD.dproj"/>
+		</Target>
+		<Target Name="Build">
+			<CallTarget Targets="BindingR;BindingD"/>
+		</Target>
+		<Target Name="Clean">
+			<CallTarget Targets="BindingR:Clean;BindingD:Clean"/>
+		</Target>
+		<Target Name="Make">
+			<CallTarget Targets="BindingR:Make;BindingD:Make"/>
+		</Target>
+		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+	</Project>
