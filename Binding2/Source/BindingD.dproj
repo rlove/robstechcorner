@@ -23,7 +23,7 @@
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DesignOnlyPackage>true</DesignOnlyPackage>
 			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
-			<DCC_DependencyCheckOutputName>..\..\..\..\..\Public\Documents\RAD Studio\7.0\Bpl\BindingD.bpl</DCC_DependencyCheckOutputName>
+			<DCC_DependencyCheckOutputName>C:\Documents and Settings\All Users\Documents\RAD Studio\7.0\Bpl\BindingD.bpl</DCC_DependencyCheckOutputName>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
 			<DCC_Platform>x86</DCC_Platform>
 			<DCC_Description>Robs Tech Corner - Binding Designtime Package</DCC_Description>

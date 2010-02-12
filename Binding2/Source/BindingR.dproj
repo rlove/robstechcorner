@@ -20,7 +20,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_DependencyCheckOutputName>..\..\..\..\..\Public\Documents\RAD Studio\7.0\Bpl\BindingR.bpl</DCC_DependencyCheckOutputName>
+			<DCC_DependencyCheckOutputName>C:\Documents and Settings\All Users\Documents\RAD Studio\7.0\Bpl\BindingR.bpl</DCC_DependencyCheckOutputName>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DesignOnlyPackage>false</DesignOnlyPackage>
 			<RuntimeOnlyPackage>true</RuntimeOnlyPackage>
@@ -51,6 +51,7 @@
 			</DelphiCompile>
 			<DCCReference Include="rtl.dcp"/>
 			<DCCReference Include="Bindings.pas"/>
+			<DCCReference Include="..\..\RttiUtils.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

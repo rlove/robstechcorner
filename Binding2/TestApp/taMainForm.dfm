@@ -11,30 +11,55 @@ object Form8: TForm8
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
+  object Label1: TLabel
+    Left = 88
+    Top = 32
+    Width = 31
+    Height = 13
+    Caption = 'Label1'
+  end
   object Button1: TButton
-    Left = 40
-    Top = 24
+    Left = 88
+    Top = 104
     Width = 75
     Height = 25
-    Caption = 'Button1'
+    Caption = 'Load'
     TabOrder = 0
+    OnClick = Button1Click
+  end
+  object Edit1: TEdit
+    Left = 88
+    Top = 64
+    Width = 121
+    Height = 21
+    TabOrder = 1
+    Text = 'Edit1'
+  end
+  object Button2: TButton
+    Left = 200
+    Top = 104
+    Width = 75
+    Height = 25
+    Caption = 'Save'
+    TabOrder = 2
+    OnClick = Button2Click
   end
   object Binder1: TBinder
-    SourceType = 'uModel.TEmployee'
     Bindings = <
       item
-        SourceMember = 'EmployeeNum'
-        DestObject = Button1
-        BehaviorType = 'TTest2'
-        Behavior.Test2 = 'asdf222'
+        DestComponent = Binder1
       end
       item
-        BehaviorType = 'TTest1'
-        Behavior.Test1 = 'Blah111'
+      end
+      item
+      end
+      item
       end>
-    Left = 480
-    Top = 40
+    Left = 528
+    Top = 72
   end
 end

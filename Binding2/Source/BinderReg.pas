@@ -13,7 +13,8 @@ begin
   RegisterComponents('Rob''s Tech Corner',[TBinder]);
   RegisterPropertyEditor(TypeInfo(TRttiTypeString),TBinder,'SourceType',TRttiTypeStringProperty);
   RegisterPropertyEditor(TypeInfo(TBindingBehaviorClassName),TBindingCollectionItem,'BehaviorType',TBehaviorTypeProperty);
-  RegisterPropertyEditor(TypeInfo(TRttiMemberString),TBindingCollectionItem,'SourceMember', TSourceMemberProperty);
+  RegisterPropertyEditor(TypeInfo(TRttiMemberString),TMemberBindingBehavior,'SourceMemberName', TSourceMemberProperty);
+  RegisterPropertyEditor(TypeInfo(TRttiMemberString),TMemberBindingBehavior,'DestMemberName', TDestMemberProperty);
   RegisterPropertyEditor(TypeInfo(TBindingBehavior),TBindingCollectionItem,'Behavior',TBehaviorProperty);
 
   // Although you can bind at run time to any object at design time

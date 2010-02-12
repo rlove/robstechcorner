@@ -5,7 +5,7 @@ uses
   Sysutils, Classes, DesignIntf, DesignEditors, Bindings, Rtti,ToolsApi;
 type
   TRttiTypeStringProperty = class(TStringProperty)
-  protected
+  public
     function GetAttributes: TPropertyAttributes; override;
     procedure Edit; override;
   end;
@@ -14,9 +14,9 @@ type
   protected
      FCtx :  TRttiContext;
      function GetType : TRttiType; virtual; abstract;
-     function GetAttributes: TPropertyAttributes; override;
-     procedure GetValues(Proc: TGetStrProc); override;
   public
+    function GetAttributes: TPropertyAttributes; override;
+    procedure GetValues(Proc: TGetStrProc); override;
     constructor Create(const ADesigner: IDesigner; APropCount: Integer); override;
   end;
 
@@ -26,11 +26,18 @@ type
     function GetType : TRttiType; override;
   end;
 
+  TDestMemberProperty = class(TRttiMemberStringProperty)
+  protected
+    function GetType : TRttiType; override;
+  end;
+
+
   TBehaviorTypeProperty = class(TStringProperty)
   protected
-    function GetAttributes: TPropertyAttributes; override;
+  public
     procedure GetValues(Proc: TGetStrProc); override;
     procedure SetValue(const Value: string); override;
+    function GetAttributes: TPropertyAttributes; override;
   end;
 
   TBehaviorProperty = class(TClassProperty)
@@ -117,7 +124,9 @@ function TSourceMemberProperty.GetType: TRttiType;
 var
  lSourceType : String;
 begin
- lSourceType :=  TBindingCollectionItem(GetComponent(0)).BindingCollection.Binding.SourceType;
+ lSourceType :=  TBindingBehavior(GetComponent(0)).BindingItem.BindingCollection.Binding.SourceType;
+ if LSourceType = '' then
+    exit(nil);
  result := FCtx.FindType(lSourceType);
 end;
 
@@ -170,14 +179,37 @@ begin
 end;
 
 function TBehaviorProperty.GetValue: string;
+var
+ Behavior : TBindingBehavior;
 begin
-   result := 'Blah';
+  Behavior := TBindingBehavior(GetComponent(0));
+  if Assigned(Behavior) then
+  begin
+    result := Behavior.ClassName;// + ' ' + Behavior.DisplayDetails;
+  end
+  else
+    result := 'Specify Behavior Type';
+
+
+
 end;
 
 procedure TBehaviorProperty.Initialize;
 begin
   inherited;
 //  ShowMessage('Test');
+end;
+
+{ TDestMemberProperty }
+
+function TDestMemberProperty.GetType: TRttiType;
+var
+ lDest : TObject;
+begin
+ lDest :=  TBindingBehavior(GetComponent(0)).BindingItem.DestObject;
+ if not Assigned(LDest) then
+    exit(nil);
+ result := FCtx.GetType(LDest.ClassInfo);
 end;
 
 end.
