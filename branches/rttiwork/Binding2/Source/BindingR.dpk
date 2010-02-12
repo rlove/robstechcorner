@@ -30,6 +30,7 @@ requires
   rtl;
 
 contains
-  Bindings in 'Bindings.pas';
+  Bindings in 'Bindings.pas',
+  RttiUtils in '..\..\RttiUtils.pas';
 
 end.
