@@ -1,7 +1,7 @@
 unit RttiUtils;
 // MIT License
 //
-// Copyright (c) 2009 - Robert Love
+// Copyright (c) 2010 - Robert Love
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -435,7 +435,6 @@ class function TEnumerableFactory.IsTypeSupported(aType : TRttiType): Boolean;
 var
  lContext : TRttiContext;
  lGetEnum : TRttiMethod;
- lEnumerator : TValue;
 begin
  // Dynamic Arrays Supported
  result := (aType.TypeKind = tkDynArray);
@@ -529,9 +528,6 @@ end;
 procedure TArrayElementAdd.AddFinalize;
 // Copy the FTempList to the End of the FList which will be an Array
 var
-  lNewArray : TValue;
-  lNewArrayPtr : Pointer;
-  Len : LongInt;
   I : Integer;
   lExistingArrayLen : Integer;
   ValArray : Array of TValue;
