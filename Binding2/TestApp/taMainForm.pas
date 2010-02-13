@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, Bindings, uModel, StdCtrls, Binder;
+  Dialogs, Bindings, uModel, StdCtrls;
 
 type
   TForm8 = class(TForm)

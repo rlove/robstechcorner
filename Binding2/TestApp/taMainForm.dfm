@@ -49,15 +49,21 @@ object Form8: TForm8
     OnClick = Button2Click
   end
   object Binder1: TBinder
+    SourceType = 'uModel.TPerson'
     Bindings = <
       item
-        DestComponent = Binder1
+        DestObject = Edit1
+        BehaviorType = 'TMemberBindingBehavior'
+        Behavior.DestMemberName = 'Text'
+        Behavior.SourceMemberName = 'FirstName'
+        Behavior.ReadOnly = False
       end
       item
-      end
-      item
-      end
-      item
+        DestObject = Label1
+        BehaviorType = 'TMemberBindingBehavior'
+        Behavior.DestMemberName = 'Caption'
+        Behavior.SourceMemberName = 'LastName'
+        Behavior.ReadOnly = True
       end>
     Left = 528
     Top = 72
