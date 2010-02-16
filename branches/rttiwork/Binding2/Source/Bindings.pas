@@ -37,7 +37,8 @@ const
   BindingVisibility = [mvPublic, mvPublished];
 
 type
-  EBinderException = class(Exception);
+  EBinderException = class(Exception)
+  end; // End here to make formatter happy :-)
 
   TRttiTypeString = String;
   TRttiMemberString = String;
@@ -45,7 +46,6 @@ type
   TBindingCollection = class;
   TBindingCollectionItem = class;
 
-  // Argh... The D2010 formatter really dislikes this code section
   TBindingBehavior = class(TPersistent)
   private
   protected
@@ -71,29 +71,53 @@ type
     function IsModified(Source: TObject): Boolean; virtual;
   end;
 
-  TMemberBindingBehavior = class(TBindingBehavior)
-  private
+  TRttiBindingBehavior = class(TBindingBehavior)
   protected
     FCtx: TRttiContext;
+    function GetMember(Obj: TObject; MemberName: string): TRttiMember;
+  public
+    constructor Create(aBindingItem: TBindingCollectionItem); override;
+  end;
+
+  TMemberBindingBehavior = class(TRttiBindingBehavior)
+  private
+  protected
     FSourceMemberName: TRttiMemberString;
     FDestMemberName: TRttiMemberString;
     FReadOnly: Boolean;
     procedure SetReadOnly(const Value: Boolean);
     procedure SetSourceMemberName(const Value: TRttiMemberString);
     procedure SetDestMemberName(const Value: TRttiMemberString);
-    function GetMember(Obj: TObject; MemberName: String): TRttiMember;
     procedure InternalSave(Source: TObject; DestObj: TObject); override;
     procedure InternalLoad(Source: TObject; DestObj: TObject); override;
     function InternalIsModified(Source: TObject; DestObj: TObject): Boolean; override;
     procedure ValidateDest(DestObj: TObject); override;
   public
-    constructor Create(aBindingItem: TBindingCollectionItem); override;
     procedure Save(Source: TObject); override;
     function DisplayDetails: string; override;
   published
     property DestMemberName: TRttiMemberString read FDestMemberName write SetDestMemberName;
     property SourceMemberName: TRttiMemberString read FSourceMemberName write SetSourceMemberName;
     property ReadOnly: Boolean read FReadOnly write SetReadOnly;
+  end;
+
+  TEnumaratorToStringListBehavior = class(TRttiBindingBehavior)
+  private
+    FDestMemberName: String;
+    FStoreObjectInList: Boolean;
+    FSourceMemberName: TRttiMemberString;
+    procedure SetDestMemberName(const Value: String);
+    procedure SetStoreObjectInList(const Value: Boolean);
+    procedure SetSourceMemberName(const Value: TRttiMemberString);
+  published
+  protected
+    procedure InternalSave(Source: TObject; DestObj: TObject); override;
+    procedure InternalLoad(Source: TObject; DestObj: TObject); override;
+    function InternalIsModified(Source: TObject; DestObj: TObject): Boolean; override;
+  published
+    property DestMemberName: String read FDestMemberName write SetDestMemberName;
+    property SourceMemberName: TRttiMemberString read FSourceMemberName write SetSourceMemberName;
+    property StoreObjectInList: Boolean read FStoreObjectInList write SetStoreObjectInList;
   end;
 
   TBindingBehaviorClass = class of TBindingBehavior;
@@ -301,10 +325,14 @@ end;
 function TBindingCollection.GetAttr(Index: Integer): string;
 begin
   case Index of
-    0: result := 'Destination';
-    1: result := 'Behavior';
-    2: result := 'Behavior Details';
-  else result := '';
+    0:
+      result := 'Destination';
+    1:
+      result := 'Behavior';
+    2:
+      result := 'Behavior Details';
+  else
+    result := '';
   end;
 end;
 
@@ -319,7 +347,8 @@ var
 begin
   Item := TBindingCollectionItem(Items[ItemIndex]);
   case Index of
-    0: begin
+    0:
+      begin
         if assigned(Item.DestObject) then
         begin
           // Really only can be TComponent at design time but rather be safe
@@ -334,11 +363,13 @@ begin
           result := 'Unassigned';
         end;
       end;
-    1: result := Item.BehaviorType;
-    2: begin
+    1:
+      result := Item.BehaviorType;
+    2:
+      begin
         if assigned(Item.Behavior) then
           result := Item.Behavior.DisplayDetails;
-       end;
+      end;
   end; // Case
 end;
 
@@ -383,6 +414,7 @@ class constructor TBinder.Create;
 begin
   FBehaviors := TDictionary<String, TBindingBehaviorClass>.Create;
   RegisterBehavior(TMemberBindingBehavior);
+  RegisterBehavior(TEnumaratorToStringListBehavior);
 end;
 
 class procedure TBinder.RegisterBehavior(aClass: TBindingBehaviorClass);
@@ -440,54 +472,31 @@ end;
 
 { TMemberBindingBehavior }
 
-constructor TMemberBindingBehavior.Create(aBindingItem: TBindingCollectionItem);
-begin
-  inherited;
-  FCtx := TRttiContext.Create;
-  // Insure Pool Created;
-  FCtx.GetType(TypeInfo(Integer));
-
-end;
-
-function TMemberBindingBehavior.GetMember(Obj: TObject; MemberName: String): TRttiMember;
-begin
-  Assert(assigned(Obj));
-  result := FCtx.GetType(Obj.ClassInfo).GetProperty(MemberName);
-  if Not assigned(result) then
-    FCtx.GetType(Obj).GetField(MemberName);
-  if Not assigned(result) then
-    raise EBinderException.CreateFmt('Member "%s" not found on class of type "%s"', [MemberName, Obj.ClassName]);
-  if not(result.Visibility in BindingVisibility) then
-    raise EBinderException.Create('Visibility of Member not Supported');
-end;
-
-
-function TMemberBindingBehavior.InternalIsModified(Source,
-  DestObj: TObject): Boolean;
+function TMemberBindingBehavior.InternalIsModified(Source, DestObj: TObject): Boolean;
 var
   SourceValue: TValue;
   DestValue: TValue;
-  SourceVar : Variant;
-  DestVar : Variant;
+  SourceVar: Variant;
+  DestVar: Variant;
   SourceMember: TRttiMember;
   DestMember: TRttiMember;
 begin
-   // If the types are the same (i.e. String to String) this is alot of overhead
-   // may want to change
+  // If the types are the same (i.e. String to String) this is alot of overhead
+  // may want to change
 
-   // Get Members
-   SourceMember := GetMember(Source, FSourceMemberName);
-   DestMember := GetMember(DestObj, FDestMemberName);
-   // Get Source Value
-   SourceValue := SourceMember.GetValue(Source);
-   DestValue := DestValue;
-   // Source into Dest.Type
-   SourceValue := ConvertType(SourceValue,DestMember.MemberType);
-   // Convert to variant
-   SourceVar := SourceValue.AsType<Variant>;
-   DestVar := DestValue.AsType<Variant>;
-   // Actual comparision
-   result := VarCompareValue(SourceVar,DestVar) = vrEqual;
+  // Get Members
+  SourceMember := GetMember(Source, FSourceMemberName);
+  DestMember := GetMember(DestObj, FDestMemberName);
+  // Get Source Value
+  SourceValue := SourceMember.GetValue(Source);
+  DestValue := DestValue;
+  // Source into Dest.Type
+  SourceValue := ConvertType(SourceValue, DestMember.MemberType);
+  // Convert to variant
+  SourceVar := SourceValue.AsType<Variant>;
+  DestVar := DestValue.AsType<Variant>;
+  // Actual comparision
+  result := VarCompareValue(SourceVar, DestVar) = vrEqual;
 end;
 
 procedure TMemberBindingBehavior.InternalLoad(Source: TObject; DestObj: TObject);
@@ -506,7 +515,6 @@ begin
 end;
 
 procedure TMemberBindingBehavior.InternalSave(Source: TObject; DestObj: TObject);
-
 var
   Value: TValue;
   SourceMember: TRttiMember;
@@ -568,6 +576,141 @@ function TMemberBindingBehavior.DisplayDetails: string;
 begin
   // Really only used for Design Time Collection Editor
   result := 'Source := ' + FSourceMemberName + ';   Dest :=' + FDestMemberName + ';';
+end;
+
+{ TEnumaratorToStringListBehavior }
+
+function TEnumaratorToStringListBehavior.InternalIsModified(Source, DestObj: TObject): Boolean;
+begin
+  result := false; // Binding is Readonly
+end;
+
+procedure TEnumaratorToStringListBehavior.InternalLoad(Source, DestObj: TObject);
+var
+  lSourceType: TRttiType;
+  lDestType: TRttiType;
+  lEnumMethod: TRttiMethod;
+  lctx: TRttiContext;
+  lDestMember: TRttiMember;
+  lSourceMember : TRttiMember;
+  lDestValue: TValue;
+  lEnumValue: TValue;
+  lDestSL: TStrings;
+  lMoveNext : TRttiMethod;
+  lCurrent : TRttiProperty;
+  lCurrentValue : TValue;
+  lDestMemberValue : string;
+begin
+  lSourceType := lctx.GetType(Source.ClassInfo);
+  // Support for two types of enumeration binding
+  // The first is to see if there is a GetEnumerator Method
+  // If not then check to see if what we have conforms to the
+  // results of the GetEnumerator method (i.e. Current and Next)
+
+  // First Try to see if there is an Enumerator
+  lEnumMethod := lSourceType.GetMethod('GetEnumerator');
+  if assigned(lEnumMethod) then
+  begin
+    // Invoke and get Enumerator
+    lEnumValue := lEnumMethod.Invoke(Source, []);
+    if (not lDestValue.IsObject) then
+      raise EBinderException.Create('GetEnumerator must return an Object');
+  end
+  else
+  begin
+    lEnumValue := Source;
+  end;
+  // Check to see if the required members are present
+ lMoveNext := lCtx.GetType(lEnumValue.TypeInfo).GetMethod('MoveNext');
+ lCurrent := lCtx.GetType(lEnumValue.TypeInfo).GetProperty('Current');
+
+ if Not Assigned(lMoveNext) then
+    raise EBinderException.CreateFmt('Expected Method MoveNext on %s',[lEnumValue.TypeInfo.Name]);
+
+ if Not Assigned(lCurrent) then
+    raise EBinderException.CreateFmt('Expected Property Current on %s',[lEnumValue.TypeInfo.Name]);
+
+  // Destination must either be a TStrings Object or have a member that is a TString
+  if (FDestMemberName = '') and (not(DestObj is TStrings)) then
+    raise EBinderException.Create('Expected TStrings Class for Destinaction');
+  if DestObj is TStrings then
+  begin
+    lDestSL := TStrings(DestObj)
+  end
+  else
+  begin
+    lDestMember := GetMember(DestObj, FDestMemberName);
+    lDestValue := lDestMember.GetValue(DestObj);
+    if (not lDestValue.IsObject) or (not (lDestValue.AsObject is TStrings)) then
+      raise EBinderException.CreateFmt('Expecting TStrings type for Member "%s")', [FDestMemberName]);
+    lDestSL := TStrings(lDestValue.AsObject);
+  end;
+
+  lDestSL.Clear;
+  lSourceMember := nil;
+  while lMoveNext.Invoke(lEnumValue,[]).AsBoolean do
+  begin
+    lCurrentValue := lCurrent.GetValue(lEnumValue.AsObject);
+    if Not assigned(lSourceMember) then
+    begin
+       lSourceMember := GetMember(lCurrentValue.AsObject,FSourceMemberName);
+    end;
+    lDestMemberValue := ConvertType(lSourceMember.GetValue(lCurrentValue.AsObject),lCtx.GetType(TypeInfo(String))).asString;
+    if FStoreObjectInList then
+    begin
+      lDestSL.AddObject(lDestMemberValue,lCurrentValue.AsObject)
+    end
+    else
+    begin
+       lDestSL.Add(lDestMemberValue);
+    end;
+  end;
+
+
+
+end;
+
+procedure TEnumaratorToStringListBehavior.InternalSave(Source, DestObj: TObject);
+begin
+  // Do Nothing Binding is Readonly
+end;
+
+procedure TEnumaratorToStringListBehavior.SetDestMemberName(const Value: String);
+begin
+  FDestMemberName := Value;
+end;
+
+procedure TEnumaratorToStringListBehavior.SetSourceMemberName(
+  const Value: TRttiMemberString);
+begin
+  FSourceMemberName := Value;
+end;
+
+procedure TEnumaratorToStringListBehavior.SetStoreObjectInList(const Value: Boolean);
+begin
+  FStoreObjectInList := Value;
+end;
+
+{ TRttiBindingBehavior }
+
+constructor TRttiBindingBehavior.Create(aBindingItem: TBindingCollectionItem);
+begin
+  inherited;
+  FCtx := TRttiContext.Create;
+  // Insure Pool Created;
+  FCtx.GetType(TypeInfo(Integer));
+end;
+
+function TRttiBindingBehavior.GetMember(Obj: TObject; MemberName: string): TRttiMember;
+begin
+  Assert(assigned(Obj));
+  result := FCtx.GetType(Obj.ClassInfo).GetProperty(MemberName);
+  if Not assigned(result) then
+    FCtx.GetType(Obj).GetField(MemberName);
+  if Not assigned(result) then
+    raise EBinderException.CreateFmt('Member "%s" not found on class of type "%s"', [MemberName, Obj.ClassName]);
+  if not(result.Visibility in BindingVisibility) then
+    raise EBinderException.Create('Visibility of Member not Supported');
 end;
 
 end.

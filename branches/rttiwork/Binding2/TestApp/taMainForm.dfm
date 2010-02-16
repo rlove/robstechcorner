@@ -48,6 +48,15 @@ object Form8: TForm8
     TabOrder = 2
     OnClick = Button2Click
   end
+  object Memo1: TMemo
+    Left = 312
+    Top = 168
+    Width = 185
+    Height = 89
+    Lines.Strings = (
+      'Memo1')
+    TabOrder = 3
+  end
   object Binder1: TBinder
     SourceType = 'uModel.TPerson'
     Bindings = <
@@ -67,5 +76,18 @@ object Form8: TForm8
       end>
     Left = 528
     Top = 72
+  end
+  object Binder2: TBinder
+    SourceType = 'uModel.TList<uModel.TPerson>'
+    Bindings = <
+      item
+        DestObject = Memo1
+        BehaviorType = 'TEnumaratorToStringListBehavior'
+        Behavior.DestMemberName = 'Lines'
+        Behavior.SourceMemberName = 'FirstName'
+        Behavior.StoreObjectInList = False
+      end>
+    Left = 528
+    Top = 152
   end
 end
