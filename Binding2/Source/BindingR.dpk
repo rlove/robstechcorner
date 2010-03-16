@@ -27,10 +27,14 @@ package BindingR;
 {$IMPLICITBUILD ON}
 
 requires
-  rtl;
+  rtl,
+  dbrtl;
 
 contains
   Bindings in 'Bindings.pas',
-  RttiUtils in '..\..\RttiUtils.pas';
+  RttiUtils in '..\..\RttiUtils.pas',
+  CloneStorage in 'CloneStorage.pas',
+  ObjectDataSet in 'ObjectDataSet.pas',
+  ObjectDSStorage in 'ObjectDSStorage.pas';
 
 end.
