@@ -15,6 +15,9 @@
 			<Projects Include="TestApp\TestApp.dproj">
 				<Dependencies/>
 			</Projects>
+			<Projects Include="..\..\fakeprop\Source\AddPropertyPackage.dproj">
+				<Dependencies/>
+			</Projects>
 		</ItemGroup>
 		<ProjectExtensions>
 			<Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -59,14 +62,23 @@
 		<Target Name="TestApp:Make">
 			<MSBuild Targets="Make" Projects="TestApp\TestApp.dproj"/>
 		</Target>
+		<Target Name="AddPropertyPackage">
+			<MSBuild Projects="..\..\fakeprop\Source\AddPropertyPackage.dproj"/>
+		</Target>
+		<Target Name="AddPropertyPackage:Clean">
+			<MSBuild Targets="Clean" Projects="..\..\fakeprop\Source\AddPropertyPackage.dproj"/>
+		</Target>
+		<Target Name="AddPropertyPackage:Make">
+			<MSBuild Targets="Make" Projects="..\..\fakeprop\Source\AddPropertyPackage.dproj"/>
+		</Target>
 		<Target Name="Build">
-			<CallTarget Targets="BindingR;BindingD;ExampleModel;TestApp"/>
+			<CallTarget Targets="BindingR;BindingD;ExampleModel;TestApp;AddPropertyPackage"/>
 		</Target>
 		<Target Name="Clean">
-			<CallTarget Targets="BindingR:Clean;BindingD:Clean;ExampleModel:Clean;TestApp:Clean"/>
+			<CallTarget Targets="BindingR:Clean;BindingD:Clean;ExampleModel:Clean;TestApp:Clean;AddPropertyPackage:Clean"/>
 		</Target>
 		<Target Name="Make">
-			<CallTarget Targets="BindingR:Make;BindingD:Make;ExampleModel:Make;TestApp:Make"/>
+			<CallTarget Targets="BindingR:Make;BindingD:Make;ExampleModel:Make;TestApp:Make;AddPropertyPackage:Make"/>
 		</Target>
 		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 	</Project>

@@ -50,8 +50,12 @@
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
 			<DCCReference Include="rtl.dcp"/>
+			<DCCReference Include="dbrtl.dcp"/>
 			<DCCReference Include="Bindings.pas"/>
 			<DCCReference Include="..\..\RttiUtils.pas"/>
+			<DCCReference Include="CloneStorage.pas"/>
+			<DCCReference Include="ObjectDataSet.pas"/>
+			<DCCReference Include="ObjectDSStorage.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
