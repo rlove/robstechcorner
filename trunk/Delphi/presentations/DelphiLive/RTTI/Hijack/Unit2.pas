@@ -74,7 +74,7 @@ var
  I, Cnt: Integer;
  HackMethod : Pointer;
 begin
- //{ Show the Virtual Address List
+{ Show the Virtual Address List
  Cnt := GetVirtualMethodCount(TTestObject);
 
  for I := 0 to Cnt - 1 do
@@ -85,13 +85,13 @@ begin
  end;
  // }
 
- { Now hack the method
+// { Now hack the method
  HackMethod := GetVirtualMethod(TNewHack,0);
 
  SetVirtualMethod(TTestObject,2,HackMethod);
  //}
 
- { Execute TestPublic
+// { Execute TestPublic
  Test := TTestObject.Create;
  Test.TestPublic;
  Test.Free;      //}

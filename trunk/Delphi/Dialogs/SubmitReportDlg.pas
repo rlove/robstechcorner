@@ -33,6 +33,7 @@ type
     FAllowAttachments: boolean;
     FReportQuestion: String;
     FReportComment: TStrings;
+    FCallStack: TStrings;
     procedure SetTechnicalDetails(const Value: TStrings);
     procedure SetAllowAttachments(const Value: boolean);
     procedure SetReportComment(const Value: TStrings);
@@ -45,9 +46,11 @@ type
   public
     constructor Create(aOwner : TComponent); override;
     destructor Destroy; override;
+    procedure GenerateCallStack;
 
     function Execute: Boolean;  virtual;
     procedure CaptureImages;
+    property CallStack : TStrings read FCallStack write FCallStack;
     property TechnicalDetails : TStrings read FTechnicalDetails write SetTechnicalDetails;
     property ReportComment : TStrings read FReportComment write SetReportComment;
     property Title : String read FTitle write SetTitle;
@@ -62,7 +65,7 @@ type
   end;
 
 implementation
-uses ComCtrls,RtlConsts;
+uses ComCtrls,RtlConsts, JclDebug;
 
 { TSubmitReportDlg }
 
@@ -78,6 +81,7 @@ begin
   FTechnicalDetails := TStringList.Create;
   FReportComment := TStringList.Create;
   FTitle := icTitle;
+  FCallStack := TStringList.Create;
   FReportQuestion := icReportQuestion;
 end;
 
@@ -91,6 +95,7 @@ destructor TSubmitReportDlg.Destroy;
 begin
   FreeAndNil(FTechnicalDetails);
   FreeAndNil(FReportComment);
+  FreeAndNil(FCallStack);
   if Assigned(FForm) then
      FreeAndNil(FForm);
   inherited;
@@ -99,14 +104,21 @@ end;
 function TSubmitReportDlg.Execute: Boolean;
 begin
   CreateFormIfNeeded;
+  GenerateCallStack;
   FForm.Caption := FTitle;
   FForm.lblReport.Caption := FReportQuestion;
   FForm.memTechDetails.Lines.Assign(FTechnicalDetails);
+  FForm.memCallStack.Lines.Assign(FCallStack);
   result := (FForm.ShowModal = mrOk);
   if result then
   begin
     FReportComment.Assign(FForm.memUserComment.Lines);
   end;
+end;
+
+procedure TSubmitReportDlg.GenerateCallStack;
+begin
+  JclLastExceptStackListToStrings(FCallStack,true,false,false,false);
 end;
 
 function TSubmitReportDlg.GetAttachment(Index: Integer): String;
@@ -165,5 +177,12 @@ procedure TSubmitReportDlg.SetTitle(const Value: String);
 begin
   FTitle := Value;
 end;
+
+initialization
+  Include(JclStackTrackingOptions, stRawMode);
+  JclStartExceptionTracking;
+
+finalization
+  JclStopExceptionTracking;
 
 end.
