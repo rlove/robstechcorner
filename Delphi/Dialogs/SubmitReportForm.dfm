@@ -9,13 +9,13 @@ object frmSubmitReport: TfrmSubmitReport
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  GlassFrame.Enabled = True
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
-  GlassFrame.Enabled = True
   object Splitter1: TSplitter
     Left = 0
     Top = 97
@@ -49,6 +49,8 @@ object frmSubmitReport: TfrmSubmitReport
       Caption = 'Cancel'
       ModalResult = 2
       TabOrder = 1
+      ExplicitLeft = 455
+      ExplicitTop = 6
     end
     object btnOK: TButton
       AlignWithMargins = True
@@ -81,14 +83,14 @@ object frmSubmitReport: TfrmSubmitReport
       Height = 13
       Anchors = [akLeft, akTop, akRight]
       AutoSize = False
-      Caption = 'Report'
+      Caption = 'What where you doing when the error occured?'
       WordWrap = True
     end
     object memUserComment: TMemo
       Left = 2
-      Top = 18
+      Top = 20
       Width = 526
-      Height = 76
+      Height = 74
       Hint = 
         '"As the Chinese say, 1001 words is worth more than a picture."  ' +
         '- John McCarthy'
@@ -144,21 +146,6 @@ object frmSubmitReport: TfrmSubmitReport
         OnClick = rgShotSelectionClick
       end
     end
-    object tsTechDetails: TTabSheet
-      Caption = 'Technical Details'
-      ImageIndex = 1
-      object memTechDetails: TMemo
-        Left = 0
-        Top = 0
-        Width = 520
-        Height = 326
-        Align = alClient
-        ReadOnly = True
-        TabOrder = 0
-        ExplicitTop = 13
-        ExplicitHeight = 313
-      end
-    end
     object tsAttach: TTabSheet
       Caption = 'Attach to Report'
       ImageIndex = 2
@@ -206,11 +193,39 @@ object frmSubmitReport: TfrmSubmitReport
         OnClick = btnRemoveAttachmentClick
       end
     end
+    object tsTechDetails: TTabSheet
+      Caption = 'Technical Details'
+      ImageIndex = 1
+      object memTechDetails: TMemo
+        Left = 0
+        Top = 0
+        Width = 520
+        Height = 326
+        Align = alClient
+        ReadOnly = True
+        TabOrder = 0
+        ExplicitTop = -2
+      end
+    end
+    object tsCallStack: TTabSheet
+      Caption = 'Call Stack'
+      ImageIndex = 3
+      ExplicitTop = 22
+      object memCallStack: TMemo
+        Left = 0
+        Top = 0
+        Width = 520
+        Height = 326
+        Align = alClient
+        ReadOnly = True
+        TabOrder = 0
+      end
+    end
   end
   object dlgOpen: TOpenDialog
     Options = [ofHideReadOnly, ofAllowMultiSelect, ofPathMustExist, ofFileMustExist, ofEnableSizing]
     Title = 'Select File(s) to Attach'
-    Left = 24
-    Top = 448
+    Left = 48
+    Top = 400
   end
 end

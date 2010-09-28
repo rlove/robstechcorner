@@ -49,6 +49,8 @@ type
     btnAddAttachment: TButton;
     btnRemoveAttachment: TButton;
     dlgOpen: TOpenDialog;
+    tsCallStack: TTabSheet;
+    memCallStack: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure rgShotSelectionClick(Sender: TObject);
