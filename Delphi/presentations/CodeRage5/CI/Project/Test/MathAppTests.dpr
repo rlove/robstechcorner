@@ -28,8 +28,9 @@ uses
 {$R *.RES}
 
 var
- XmlFile : String;
+ XmlFile : String;    // This is a test change
 begin
+
   Application.Initialize;
   if IsConsole then
   begin
