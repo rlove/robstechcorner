@@ -16,6 +16,7 @@ program MathAppTests;
 
 uses
   FastMM4,
+  Sysutils,
   Forms,
   TestFramework,
   GUITestRunner,
@@ -35,7 +36,7 @@ begin
       if ParamCount = 1 then
         XmlFile := ParamStr(1)
       else
-        XmlFile := DEFAULT_FILENAME;
+        XmlFile := ExtractFilePath(ParamStr(0)) + DEFAULT_FILENAME;
       XMLTestRunner.RunRegisteredTests(XmlFile);
   //  with TextTestRunner.RunRegisteredTests do
   //    Free
